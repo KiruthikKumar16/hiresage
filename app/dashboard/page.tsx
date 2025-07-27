@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession, signOut } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,12 +19,15 @@ import {
   MessageSquare,
   FileText,
   Settings,
-  Loader2
+  Loader2,
+  LogOut,
+  User
 } from "lucide-react"
 import { InterviewSession } from "@/components/interview-session"
 import { CandidateList } from "@/components/candidate-list"
 import { Analytics } from "@/components/analytics"
 import { VideoInterview } from "@/components/video-interview"
+import { ProtectedRoute } from "@/components/protected-route"
 import { toast } from "sonner"
 
 interface DashboardStats {
@@ -45,7 +49,8 @@ interface RecentInterview {
   date: string
 }
 
-export default function Dashboard() {
+function DashboardContent() {
+  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState("overview")
   const [stats, setStats] = useState<DashboardStats>({
     totalInterviews: 0,
@@ -106,70 +111,86 @@ export default function Dashboard() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut({ callbackUrl: '/' })
+      toast.success('Signed out successfully')
+    } catch (error) {
+      toast.error('Error signing out')
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300">Loading dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="text-lg">Loading dashboard...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-800/50">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  HireSage AI X
-                </h1>
-                <p className="text-xs text-slate-400">AI Interview Platform</p>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Brain className="h-8 w-8 text-blue-500 animate-pulse" />
+                <h1 className="text-2xl font-bold text-white">HireSage AI</h1>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">JD</span>
+              <div className="flex items-center space-x-2 text-slate-300">
+                <User className="h-4 w-4" />
+                <span>{session?.user?.name || 'User'}</span>
+                {session?.user?.role === 'admin' && (
+                  <Badge variant="secondary" className="text-xs">Admin</Badge>
+                )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-slate-800/50 border-slate-700">
-            <TabsTrigger value="overview" className="text-slate-300 data-[state=active]:bg-blue-600">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="interviews" className="text-slate-300 data-[state=active]:bg-blue-600">
-              Interviews
-            </TabsTrigger>
-            <TabsTrigger value="video-interviews" className="text-slate-300 data-[state=active]:bg-blue-600">
-              Video Interviews
-            </TabsTrigger>
-            <TabsTrigger value="candidates" className="text-slate-300 data-[state=active]:bg-blue-600">
+            <TabsTrigger value="candidates" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
               Candidates
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="text-slate-300 data-[state=active]:bg-blue-600">
+            <TabsTrigger value="interviews" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Interviews
+            </TabsTrigger>
+            <TabsTrigger value="video-interviews" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Video Interviews
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="reports" className="text-slate-300 data-[state=active]:bg-blue-600">
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
               Reports
             </TabsTrigger>
           </TabsList>
@@ -177,154 +198,124 @@ export default function Dashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Total Interviews</CardTitle>
-                  <Brain className="h-4 w-4 text-blue-400" />
+                  <MessageSquare className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{stats.totalInterviews}</div>
-                  <p className="text-xs text-slate-400">+12% from last month</p>
+                  <p className="text-xs text-slate-400">All time interviews</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Completed</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-400" />
+                  <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{stats.completedInterviews}</div>
-                  <p className="text-xs text-slate-400">
-                    {stats.totalInterviews > 0 ? Math.round((stats.completedInterviews / stats.totalInterviews) * 100) : 0}% completion rate
-                  </p>
+                  <p className="text-xs text-slate-400">Successfully completed</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Average Score</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-cyan-400" />
+                  <BarChart3 className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.averageScore.toFixed(1)}/10</div>
-                  <p className="text-xs text-slate-400">+0.3 from last week</p>
+                  <div className="text-2xl font-bold text-white">{stats.averageScore.toFixed(1)}%</div>
+                  <p className="text-xs text-slate-400">Overall performance</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-300">Total Candidates</CardTitle>
+                  <Users className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white">{stats.totalCandidates}</div>
+                  <p className="text-xs text-slate-400">Registered candidates</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">This Week</CardTitle>
-                  <Calendar className="h-4 w-4 text-purple-400" />
+                  <Calendar className="h-4 w-4 text-pink-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{stats.thisWeek}</div>
-                  <p className="text-xs text-slate-400">Interviews scheduled</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Quick Actions</CardTitle>
-                  <CardDescription className="text-slate-300">
-                    Start a new interview or manage existing sessions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex space-x-4">
-                    <Button 
-                      className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                      onClick={() => setActiveTab("interviews")}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Interview
-                    </Button>
-                    <Button variant="outline" className="border-slate-600 text-slate-300">
-                      <Play className="w-4 h-4 mr-2" />
-                      Resume Session
-                    </Button>
-                  </div>
-                  <div className="flex space-x-4">
-                    <Button 
-                      variant="outline" 
-                      className="border-slate-600 text-slate-300"
-                      onClick={() => setActiveTab("candidates")}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      View Candidates
-                    </Button>
-                    <Button variant="outline" className="border-slate-600 text-slate-300">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Generate Report
-                    </Button>
-                  </div>
+                  <p className="text-xs text-slate-400">Interviews this week</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Recent Interviews</CardTitle>
-                  <CardDescription className="text-slate-300">
-                    Latest interview sessions and their status
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-300">Pending</CardTitle>
+                  <Clock className="h-4 w-4 text-yellow-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentInterviews.length > 0 ? (
-                      recentInterviews.map((interview) => (
-                        <div key={interview.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-                              <MessageSquare className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <p className="text-white font-medium">{interview.candidate}</p>
-                              <p className="text-slate-400 text-sm">{interview.position}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {interview.status === "completed" && interview.score && (
-                              <Badge className="bg-green-600 text-white">
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                {interview.score}/10
-                              </Badge>
-                            )}
-                            {interview.status === "in-progress" && interview.duration && (
-                              <Badge className="bg-yellow-600 text-white">
-                                <Clock className="w-3 h-3 mr-1" />
-                                {interview.duration}
-                              </Badge>
-                            )}
-                            {interview.status === "scheduled" && (
-                              <Badge className="bg-blue-600 text-white">
-                                <Calendar className="w-3 h-3 mr-1" />
-                                Scheduled
-                              </Badge>
-                            )}
-                            {interview.status === "cancelled" && (
-                              <Badge className="bg-red-600 text-white">
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                Cancelled
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <MessageSquare className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                        <p className="text-slate-300">No interviews yet</p>
-                        <p className="text-slate-400 text-sm">Start your first interview to see it here</p>
-                      </div>
-                    )}
-                  </div>
+                  <div className="text-2xl font-bold text-white">{stats.pendingInterviews}</div>
+                  <p className="text-xs text-slate-400">Scheduled interviews</p>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Recent Interviews */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Recent Interviews</CardTitle>
+                <CardDescription className="text-slate-400">Latest interview activities</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentInterviews.length > 0 ? (
+                    recentInterviews.map((interview) => (
+                      <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            {interview.status === 'completed' ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-yellow-500" />
+                            )}
+                            <span className="text-white font-medium">{interview.candidate}</span>
+                          </div>
+                          <span className="text-slate-400">{interview.position}</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          {interview.score && (
+                            <Badge variant="secondary" className="text-xs">
+                              {interview.score}%
+                            </Badge>
+                          )}
+                          {interview.duration && (
+                            <span className="text-xs text-slate-400">{interview.duration}</span>
+                          )}
+                          <span className="text-xs text-slate-400">{interview.date}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                      <p className="text-slate-400">No interviews yet</p>
+                      <p className="text-sm text-slate-500">Start by creating your first interview</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Candidates Tab */}
+          <TabsContent value="candidates">
+            <CandidateList />
           </TabsContent>
 
           {/* Interviews Tab */}
@@ -337,11 +328,6 @@ export default function Dashboard() {
             <VideoInterview />
           </TabsContent>
 
-          {/* Candidates Tab */}
-          <TabsContent value="candidates">
-            <CandidateList />
-          </TabsContent>
-
           {/* Analytics Tab */}
           <TabsContent value="analytics">
             <Analytics />
@@ -351,19 +337,17 @@ export default function Dashboard() {
           <TabsContent value="reports">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Interview Reports</CardTitle>
-                <CardDescription className="text-slate-300">
-                  Generate and view detailed interview reports
+                <CardTitle className="text-white">Reports</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Generate detailed reports and insights
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Reports Coming Soon</h3>
-                  <p className="text-slate-300 mb-4">
-                    Detailed interview reports and analytics will be available here.
-                  </p>
-                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+                  <p className="text-slate-400">Reports Coming Soon</p>
+                  <p className="text-sm text-slate-500">Advanced reporting features will be available soon</p>
+                  <Button className="mt-4" disabled>
                     Generate Sample Report
                   </Button>
                 </div>
@@ -371,7 +355,15 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
+  )
+}
+
+export default function Dashboard() {
+  return (
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   )
 } 

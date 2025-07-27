@@ -257,30 +257,42 @@ export function InterviewSession() {
 
       setMessageInput("")
 
-      // Simulate AI response (in real app, this would call an AI service)
-      setTimeout(async () => {
-        const aiResponse: Message = {
-          id: `msg_${Date.now() + 1}`,
-          type: "ai",
-          content: generateAIResponse(content, interviewState.currentQuestion),
-          timestamp: new Date()
-        }
+      // Generate AI response using real AI service
+      const selectedCandidateData = candidates.find(c => c.id === selectedCandidate)
+      const context = {
+        candidateName: selectedCandidateData?.name || 'Candidate',
+        position: selectedPosition,
+        experience: selectedCandidateData?.position || 'Not specified',
+        skills: ['Technical skills', 'Problem solving', 'Communication'],
+        previousQuestions: interviewState.messages.filter(m => m.type === 'ai').map(m => m.content),
+        transcript: interviewState.messages.map(m => `${m.type}: ${m.content}`).join('\n'),
+        currentEmotion: 'neutral',
+        confidenceLevel: 75
+      }
 
-        // Add AI message to database
-        await fetch(`/api/interviews/${interviewState.interviewId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(aiResponse),
-        })
+      const aiResponseContent = await generateAIResponse(content, context)
+      
+      const aiResponse: Message = {
+        id: `msg_${Date.now() + 1}`,
+        type: "ai",
+        content: aiResponseContent,
+        timestamp: new Date()
+      }
 
-        setInterviewState(prev => ({
-          ...prev,
-          messages: [...prev.messages, aiResponse],
-          currentQuestion: prev.currentQuestion + 1
-        }))
-      }, 1000)
+      // Add AI message to database
+      await fetch(`/api/interviews/${interviewState.interviewId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(aiResponse),
+      })
+
+      setInterviewState(prev => ({
+        ...prev,
+        messages: [...prev.messages, aiResponse],
+        currentQuestion: prev.currentQuestion + 1
+      }))
     } catch (error) {
       console.error('Error sending message:', error)
       toast.error('Failed to send message')
@@ -289,19 +301,31 @@ export function InterviewSession() {
     }
   }
 
-  const generateAIResponse = (userMessage: string, currentQuestion: number): string => {
-    const responses = [
-      "Thank you for that detailed response. That's very insightful. Let me ask the next question...",
-      "I appreciate your perspective on that. It shows good understanding. Moving to the next question...",
-      "That's an interesting approach. I can see you have solid experience. Let's continue...",
-      "Good answer! You've demonstrated strong knowledge in this area. Next question...",
-      "Excellent! Your response shows good problem-solving skills. Let's move forward..."
-    ]
-    
-    if (currentQuestion < questions.length - 1) {
-      return `${responses[currentQuestion % responses.length]} ${questions[currentQuestion + 1]}`
-    } else {
-      return "Thank you for completing the interview! I have all the information I need. Your responses have been recorded and will be evaluated."
+  const generateAIResponse = async (userMessage: string, context: any): Promise<string> => {
+    try {
+      const response = await fetch('/api/ai/interview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'analyze_response',
+          response: userMessage,
+          context: context
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        return data.data.feedback || "Thank you for your response. Let's continue."
+      } else {
+        console.error('AI response error:', data.error)
+        return "Thank you for your response. Let's continue with the next question."
+      }
+    } catch (error) {
+      console.error('Error generating AI response:', error)
+      return "Thank you for your response. Let's continue with the next question."
     }
   }
 
