@@ -242,6 +242,11 @@ export const authService = {
     return { user, subscription }
   },
 
+  // Get active subscription for user
+  async getActiveSubscription(userId: string): Promise<Subscription | null> {
+    return await subscriptionService.getActiveSubscription(userId)
+  },
+
   // Create user account with subscription
   async createAccount(userData: {
     name: string

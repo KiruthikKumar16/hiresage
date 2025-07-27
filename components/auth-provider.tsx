@@ -31,6 +31,7 @@ interface AuthContextType {
   subscription: Subscription | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
+  signInWithProvider: (provider: 'google' | 'github') => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -85,6 +86,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const signInWithProvider = async (provider: 'google' | 'github') => {
+    try {
+      // For demo purposes, we'll simulate OAuth login
+      // In a real app, this would redirect to OAuth provider
+      const response = await fetch('/api/auth?action=signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          provider,
+          email: `demo@${provider}.com` // Demo email for testing
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.user) {
+        setUser(data.user)
+        setSubscription(data.subscription || null)
+      } else {
+        throw new Error(data.error || 'Social sign in failed')
+      }
+    } catch (error) {
+      console.error('Social sign in failed:', error)
+      throw error
+    }
+  }
+
   const signOut = async () => {
     try {
       await fetch('/api/auth?action=signout', {
@@ -99,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, subscription, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, subscription, loading, signIn, signInWithProvider, signOut }}>
       {children}
     </AuthContext.Provider>
   )
