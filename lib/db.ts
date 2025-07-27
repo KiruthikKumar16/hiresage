@@ -305,6 +305,10 @@ class Database {
     }
   }
 
+  async getUsers(): Promise<User[]> {
+    return this.users.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
   // Candidates
   async createCandidate(data: Omit<Candidate, 'id' | 'createdAt' | 'updatedAt'>): Promise<Candidate> {
     const candidate: Candidate = {

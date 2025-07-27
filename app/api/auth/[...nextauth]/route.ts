@@ -6,14 +6,20 @@ import { db } from "@/lib/db"
 
 const handler = NextAuth({
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
+    // Only add Google provider if credentials are available
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      })
+    ] : []),
+    // Only add GitHub provider if credentials are available
+    ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET ? [
+      GitHubProvider({
+        clientId: process.env.GITHUB_ID,
+        clientSecret: process.env.GITHUB_SECRET,
+      })
+    ] : []),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -25,20 +31,24 @@ const handler = NextAuth({
           return null
         }
 
-        // For now, we'll use a simple check against our localStorage users
-        // In production, you'd want to use a proper database
-        const users = await db.getUsers()
-        const user = users.find(u => u.email === credentials.email)
-        
-        if (user) {
-          // In a real app, you'd hash and compare passwords
-          // For now, we'll accept any user that exists
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
+        try {
+          // For now, we'll use a simple check against our localStorage users
+          // In production, you'd want to use a proper database
+          const users = await db.getUsers()
+          const user = users.find(u => u.email === credentials.email)
+          
+          if (user) {
+            // In a real app, you'd hash and compare passwords
+            // For now, we'll accept any user that exists
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role || 'user',
+            }
           }
+        } catch (error) {
+          console.error('Auth error:', error)
         }
         
         return null
@@ -48,34 +58,38 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, user, account }) {
       if (user) {
-        token.role = user.role
+        token.role = user.role || 'user'
         token.id = user.id
       }
       return token
     },
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role
-        session.user.id = token.id
+        session.user.role = token.role as string
+        session.user.id = token.id as string
       }
       return session
     },
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google" || account?.provider === "github") {
-        // Check if user exists in our database
-        const existingUser = await db.getUserByEmail(user.email!)
-        
-        if (!existingUser) {
-          // Create new user
-          await db.createUser({
-            name: user.name!,
-            email: user.email!,
-            role: 'user',
-          })
-        } else {
-          // Update last login
-          await db.updateUserLastLogin(existingUser.id)
+      try {
+        if (account?.provider === "google" || account?.provider === "github") {
+          // Check if user exists in our database
+          const existingUser = await db.getUserByEmail(user.email!)
+          
+          if (!existingUser) {
+            // Create new user
+            await db.createUser({
+              name: user.name!,
+              email: user.email!,
+              role: 'user',
+            })
+          } else {
+            // Update last login
+            await db.updateUserLastLogin(existingUser.id)
+          }
         }
+      } catch (error) {
+        console.error('SignIn callback error:', error)
       }
       
       return true
@@ -90,6 +104,7 @@ const handler = NextAuth({
     strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 })
 
 export { handler as GET, handler as POST } 
