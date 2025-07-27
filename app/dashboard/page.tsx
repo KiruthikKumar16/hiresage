@@ -141,11 +141,11 @@ function DashboardContent() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
                 <Image
-                  src="/JoCruit_Logo/logo_light.png"
+                  src="/JoCruit_Logo/logo_full_dark.png"
                   alt="JoCruit AI"
-                  width={40}
+                  width={120}
                   height={40}
-                  className="w-10 h-10"
+                  className="h-10 w-auto"
                 />
                 <div>
                   <h1 className="text-2xl font-bold text-white">JoCruit AI</h1>

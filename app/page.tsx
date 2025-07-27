@@ -69,11 +69,11 @@ export default function JoCruitAIX() {
             <Link href="/" className="flex items-center space-x-3">
               <div className="relative">
                 <Image
-                  src="/JoCruit_Logo/logo_light.png"
+                  src="/JoCruit_Logo/logo_full_dark.png"
                   alt="JoCruit AI"
-                  width={40}
+                  width={120}
                   height={40}
-                  className="w-10 h-10"
+                  className="h-10 w-auto"
                 />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
               </div>
@@ -475,11 +475,11 @@ export default function JoCruitAIX() {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <Image
-                  src="/JoCruit_Logo/logo_light.png"
+                  src="/JoCruit_Logo/logo_full_dark.png"
                   alt="JoCruit AI"
-                  width={32}
+                  width={100}
                   height={32}
-                  className="w-8 h-8"
+                  className="h-8 w-auto"
                 />
                 <h3 className="text-lg font-bold text-white">JoCruit AI X</h3>
               </div>
