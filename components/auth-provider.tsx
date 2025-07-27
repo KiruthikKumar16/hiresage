@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
+  signInWithProvider: (provider: 'google' | 'github') => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -65,6 +66,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const signInWithProvider = async (provider: 'google' | 'github') => {
+    try {
+      const response = await fetch('/api/auth?action=signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ provider }),
+      })
+
+      const data = await response.json()
+      
+      if (data.user) {
+        setUser(data.user)
+      } else {
+        throw new Error(data.error || 'Sign in failed')
+      }
+    } catch (error) {
+      console.error('Social sign in failed:', error)
+      throw error
+    }
+  }
+
   const signOut = async () => {
     try {
       await fetch('/api/auth?action=signout', {
@@ -77,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signInWithProvider, signOut }}>
       {children}
     </AuthContext.Provider>
   )

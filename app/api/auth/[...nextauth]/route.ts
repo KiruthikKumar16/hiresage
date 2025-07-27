@@ -27,6 +27,16 @@ export async function GET(request: NextRequest) {
         id: 'credentials',
         name: 'Credentials',
         type: 'credentials'
+      },
+      google: {
+        id: 'google',
+        name: 'Google',
+        type: 'oauth'
+      },
+      github: {
+        id: 'github',
+        name: 'GitHub',
+        type: 'oauth'
       }
     })
   }
@@ -40,13 +50,79 @@ export async function POST(request: NextRequest) {
 
   if (action === 'signin') {
     const body = await request.json()
-    const { email, password } = body
+    const { email, password, provider } = body
 
+    // Handle OAuth providers
+    if (provider === 'google') {
+      // For demo, create a user from Google
+      const sessionId = Math.random().toString(36).substring(7)
+      const user = {
+        id: 'google-user',
+        email: 'demo@google.com',
+        name: 'Google User',
+        role: 'user'
+      }
+
+      const session = {
+        user,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      }
+
+      sessions.set(sessionId, session)
+
+      const response = NextResponse.json({ 
+        user,
+        sessionId 
+      })
+
+      response.cookies.set('session-id', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 // 24 hours
+      })
+
+      return response
+    }
+
+    if (provider === 'github') {
+      // For demo, create a user from GitHub
+      const sessionId = Math.random().toString(36).substring(7)
+      const user = {
+        id: 'github-user',
+        email: 'demo@github.com',
+        name: 'GitHub User',
+        role: 'user'
+      }
+
+      const session = {
+        user,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      }
+
+      sessions.set(sessionId, session)
+
+      const response = NextResponse.json({ 
+        user,
+        sessionId 
+      })
+
+      response.cookies.set('session-id', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 // 24 hours
+      })
+
+      return response
+    }
+
+    // Handle credentials
     if (!email || !password) {
       return NextResponse.json({ error: 'Missing credentials' }, { status: 400 })
     }
 
-    // Simple demo authentication - accept any email/password
+    // Accept any email/password combination
     const sessionId = Math.random().toString(36).substring(7)
     const user = {
       id: 'demo-user',
