@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { Suspense } from "react"
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get("error")
 
@@ -67,5 +68,33 @@ export default function AuthErrorPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/JoCruit_Logo/logo_light.png"
+                alt="JoCruit AI"
+                width={60}
+                height={60}
+                className="w-15 h-15"
+              />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">Loading...</CardTitle>
+            <CardDescription className="text-center">
+              Please wait while we load the error details.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   )
 } 
