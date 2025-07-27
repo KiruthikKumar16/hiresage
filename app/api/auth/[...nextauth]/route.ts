@@ -2,7 +2,29 @@ import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { db } from "@/lib/db"
+import { supabaseDb } from "@/lib/supabase-db"
+
+// Extend the built-in session types
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name: string
+      role: string
+    }
+  }
+  
+  interface User {
+    role?: string
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role?: string
+  }
+}
 
 const handler = NextAuth({
   providers: [
@@ -32,10 +54,14 @@ const handler = NextAuth({
         }
 
         try {
-          // For now, we'll use a simple check against our localStorage users
-          // In production, you'd want to use a proper database
-          const users = await db.getUsers()
-          const user = users.find(u => u.email === credentials.email)
+          // Check if Supabase is configured
+          if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            console.warn('Supabase not configured, skipping database lookup')
+            return null
+          }
+
+          // Use Supabase database
+          const user = await supabaseDb.getUserByEmail(credentials.email)
           
           if (user) {
             // In a real app, you'd hash and compare passwords
@@ -65,27 +91,33 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role as string
+        session.user.role = token.role || 'user'
         session.user.id = token.id as string
       }
       return session
     },
     async signIn({ user, account, profile }) {
       try {
+        // Check if Supabase is configured
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          console.warn('Supabase not configured, skipping user creation')
+          return true
+        }
+
         if (account?.provider === "google" || account?.provider === "github") {
-          // Check if user exists in our database
-          const existingUser = await db.getUserByEmail(user.email!)
+          // Check if user exists in our Supabase database
+          const existingUser = await supabaseDb.getUserByEmail(user.email!)
           
           if (!existingUser) {
             // Create new user
-            await db.createUser({
+            await supabaseDb.createUser({
               name: user.name!,
               email: user.email!,
               role: 'user',
             })
           } else {
             // Update last login
-            await db.updateUserLastLogin(existingUser.id)
+            await supabaseDb.updateUserLastLogin(existingUser.id)
           }
         }
       } catch (error) {
@@ -97,7 +129,6 @@ const handler = NextAuth({
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
     error: '/auth/error',
   },
   session: {
