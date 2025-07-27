@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +27,7 @@ import { CandidateList } from "@/components/candidate-list"
 import { Analytics } from "@/components/analytics"
 import { VideoInterview } from "@/components/video-interview"
 import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/components/auth-provider"
 import { toast } from "sonner"
 import Image from "next/image"
 
@@ -51,7 +51,7 @@ interface RecentInterview {
 }
 
 function DashboardContent() {
-  const { data: session } = useSession()
+  const { user, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState("overview")
   const [stats, setStats] = useState<DashboardStats>({
     totalInterviews: 0,
@@ -99,14 +99,13 @@ function DashboardContent() {
           position: interview.position,
           status: interview.status,
           score: interview.score,
-          duration: interview.duration ? `${interview.duration} min` : undefined,
+          duration: interview.duration ? `${Math.floor(interview.duration / 60)}m ${interview.duration % 60}s` : undefined,
           date: new Date(interview.createdAt).toLocaleDateString()
         }))
         setRecentInterviews(interviews)
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
-      toast.error('Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
@@ -114,61 +113,51 @@ function DashboardContent() {
 
   const handleSignOut = async () => {
     try {
-      await signOut({ callbackUrl: '/' })
-      toast.success('Signed out successfully')
+      await signOut()
+      toast.success("Signed out successfully")
     } catch (error) {
-      toast.error('Error signing out')
+      toast.error("Error signing out")
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-lg">Loading dashboard...</span>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <Image
-                  src="/JoCruit_Logo/logo_full_dark.png"
-                  alt="JoCruit AI"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto"
-                />
-                <div>
-                  <h1 className="text-2xl font-bold text-white">JoCruit AI</h1>
-                  <p className="text-sm text-slate-400">AI-Powered Interview Platform</p>
-                </div>
-              </div>
+              <Image
+                src="/JoCruit_Logo/logo_full_dark.png"
+                alt="JoCruit AI"
+                width={120}
+                height={40}
+                className="h-8 w-auto"
+              />
+              <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
             </div>
+            
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-slate-300">
-                <User className="h-4 w-4" />
-                <span>{session?.user?.name || 'User'}</span>
-                {session?.user?.role === 'admin' && (
-                  <Badge variant="secondary" className="text-xs">Admin</Badge>
-                )}
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-700">{user?.name || user?.email}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSignOut}
-                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                className="flex items-center space-x-2"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
               </Button>
             </div>
           </div>
@@ -176,146 +165,111 @@ function DashboardContent() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-slate-800">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="candidates" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Candidates
-            </TabsTrigger>
-            <TabsTrigger value="interviews" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Interviews
-            </TabsTrigger>
-            <TabsTrigger value="video-interviews" className="flex items-center gap-2">
-              <Brain className="h-4 w-4" />
-              Video Interviews
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Reports
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="candidates">Candidates</TabsTrigger>
+            <TabsTrigger value="interviews">Interviews</TabsTrigger>
+            <TabsTrigger value="video">Video Interviews</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">Total Interviews</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-blue-500" />
+                  <CardTitle className="text-sm font-medium">Total Interviews</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.totalInterviews}</div>
-                  <p className="text-xs text-slate-400">All time interviews</p>
+                  <div className="text-2xl font-bold">{stats.totalInterviews}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +{stats.thisWeek} this week
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">Completed</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.completedInterviews}</div>
-                  <p className="text-xs text-slate-400">Successfully completed</p>
+                  <div className="text-2xl font-bold">{stats.completedInterviews}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.totalInterviews > 0 ? Math.round((stats.completedInterviews / stats.totalInterviews) * 100) : 0}% completion rate
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">Average Score</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-purple-500" />
+                  <CardTitle className="text-sm font-medium">Average Score</CardTitle>
+                  <Brain className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.averageScore.toFixed(1)}%</div>
-                  <p className="text-xs text-slate-400">Overall performance</p>
+                  <div className="text-2xl font-bold">{stats.averageScore}%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Across all interviews
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">Total Candidates</CardTitle>
-                  <Users className="h-4 w-4 text-orange-500" />
+                  <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.totalCandidates}</div>
-                  <p className="text-xs text-slate-400">Registered candidates</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">This Week</CardTitle>
-                  <Calendar className="h-4 w-4 text-pink-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.thisWeek}</div>
-                  <p className="text-xs text-slate-400">Interviews this week</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-300">Pending</CardTitle>
-                  <Clock className="h-4 w-4 text-yellow-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{stats.pendingInterviews}</div>
-                  <p className="text-xs text-slate-400">Scheduled interviews</p>
+                  <div className="text-2xl font-bold">{stats.totalCandidates}</div>
+                  <p className="text-xs text-muted-foreground">
+                    In the system
+                  </p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Recent Interviews */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white">Recent Interviews</CardTitle>
-                <CardDescription className="text-slate-400">Latest interview activities</CardDescription>
+                <CardTitle>Recent Interviews</CardTitle>
+                <CardDescription>
+                  Latest interview sessions and their status
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {recentInterviews.length > 0 ? (
                     recentInterviews.map((interview) => (
-                      <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                      <div key={interview.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            {interview.status === 'completed' ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Clock className="h-4 w-4 text-yellow-500" />
-                            )}
-                            <span className="text-white font-medium">{interview.candidate}</span>
+                          <div className="flex-shrink-0">
+                            <User className="h-8 w-8 text-gray-400" />
                           </div>
-                          <span className="text-slate-400">{interview.position}</span>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{interview.candidate}</p>
+                            <p className="text-sm text-gray-500">{interview.position}</p>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-4">
+                          <Badge variant={interview.status === 'completed' ? 'default' : 'secondary'}>
+                            {interview.status}
+                          </Badge>
                           {interview.score && (
-                            <Badge variant="secondary" className="text-xs">
-                              {interview.score}%
-                            </Badge>
+                            <span className="text-sm text-gray-500">{interview.score}%</span>
                           )}
                           {interview.duration && (
-                            <span className="text-xs text-slate-400">{interview.duration}</span>
+                            <span className="text-sm text-gray-500">{interview.duration}</span>
                           )}
-                          <span className="text-xs text-slate-400">{interview.date}</span>
+                          <span className="text-sm text-gray-500">{interview.date}</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8">
-                      <MessageSquare className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                      <p className="text-slate-400">No interviews yet</p>
-                      <p className="text-sm text-slate-500">Start by creating your first interview</p>
+                    <div className="text-center py-8 text-gray-500">
+                      No interviews yet. Start by creating a new interview session.
                     </div>
                   )}
                 </div>
@@ -323,46 +277,20 @@ function DashboardContent() {
             </Card>
           </TabsContent>
 
-          {/* Candidates Tab */}
           <TabsContent value="candidates">
             <CandidateList />
           </TabsContent>
 
-          {/* Interviews Tab */}
           <TabsContent value="interviews">
             <InterviewSession />
           </TabsContent>
 
-          {/* Video Interviews Tab */}
-          <TabsContent value="video-interviews">
+          <TabsContent value="video">
             <VideoInterview />
           </TabsContent>
 
-          {/* Analytics Tab */}
           <TabsContent value="analytics">
             <Analytics />
-          </TabsContent>
-
-          {/* Reports Tab */}
-          <TabsContent value="reports">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Reports</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Generate detailed reports and insights
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-400">Reports Coming Soon</p>
-                  <p className="text-sm text-slate-500">Advanced reporting features will be available soon</p>
-                  <Button className="mt-4" disabled>
-                    Generate Sample Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </main>

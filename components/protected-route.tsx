@@ -1,9 +1,9 @@
 "use client"
 
-import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "./auth-provider"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -11,26 +11,26 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole = 'user' }: ProtectedRouteProps) {
-  const { data: session, status } = useSession()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (status === "loading") return
+    if (loading) return
 
-    if (!session) {
+    if (!user) {
       router.push("/auth/signin")
       return
     }
 
-    if (requiredRole === 'admin' && session.user?.role !== 'admin') {
+    if (requiredRole === 'admin' && user.role !== 'admin') {
       router.push("/dashboard")
       return
     }
-  }, [session, status, router, requiredRole])
+  }, [user, loading, router, requiredRole])
 
-  if (status === "loading") {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span className="text-lg">Loading...</span>
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, requiredRole = 'user' }: ProtectedRou
     )
   }
 
-  if (!session) {
+  if (!user) {
     return null
   }
 

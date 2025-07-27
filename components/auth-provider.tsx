@@ -1,12 +1,92 @@
 "use client"
 
-import { SessionProvider } from "next-auth/react"
-import { ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 
-interface AuthProviderProps {
-  children: ReactNode
+interface User {
+  id: string
+  email: string
+  name: string
+  role: string
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  return <SessionProvider>{children}</SessionProvider>
+interface AuthContextType {
+  user: User | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for existing session on mount
+    checkSession()
+  }, [])
+
+  const checkSession = async () => {
+    try {
+      const response = await fetch('/api/auth?action=session')
+      const data = await response.json()
+      
+      if (data.user) {
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Session check failed:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth?action=signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+      
+      if (data.user) {
+        setUser(data.user)
+      } else {
+        throw new Error(data.error || 'Sign in failed')
+      }
+    } catch (error) {
+      console.error('Sign in failed:', error)
+      throw error
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      await fetch('/api/auth?action=signout', {
+        method: 'POST',
+      })
+      setUser(null)
+    } catch (error) {
+      console.error('Sign out failed:', error)
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 } 
