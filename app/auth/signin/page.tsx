@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Github, Mail, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import Image from "next/image"
 
 export default function SignIn() {
   const [email, setEmail] = useState("")
@@ -57,6 +58,15 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/JoCruit_Logo/logo_light.png"
+              alt="JoCruit AI"
+              width={60}
+              height={60}
+              className="w-15 h-15"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
             Sign in to your JoCruit AI account

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Check, Star, Building2, User, Zap, Shield, Brain, Video } from 'lucide-react'
+import Image from "next/image"
 
 interface PricingProps {
   onSelectPlan?: (plan: string, type: 'individual' | 'organization') => void
@@ -157,14 +158,18 @@ export function Pricing({ onSelectPlan }: PricingProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">
-          Choose Your Plan
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Whether you're an individual looking to improve your interview skills or an organization 
-          seeking to streamline your hiring process, we have the perfect plan for you.
-        </p>
+      <div className="text-center mb-12">
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/JoCruit_Logo/logo_light.png"
+            alt="JoCruit AI"
+            width={80}
+            height={80}
+            className="w-20 h-20"
+          />
+        </div>
+        <h2 className="text-4xl font-bold text-white mb-4">Simple, Transparent Pricing</h2>
+        <p className="text-xl text-slate-300">Pay only for what you use. Scale up or down as needed.</p>
       </div>
 
       {/* User Type Toggle */}

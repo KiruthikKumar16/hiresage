@@ -68,9 +68,13 @@ export default function JoCruitAIX() {
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
+                <Image
+                  src="/JoCruit_Logo/logo_light.png"
+                  alt="JoCruit AI"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10"
+                />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
               </div>
               <div>
@@ -468,19 +472,21 @@ export default function JoCruitAIX() {
       <footer className="py-12 bg-slate-900 border-t border-slate-800">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
-            <div className="col-span-2">
+            <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                    JoCruit AI X
-                  </h3>
-                  <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
-                </div>
+                <Image
+                  src="/JoCruit_Logo/logo_light.png"
+                  alt="JoCruit AI"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8"
+                />
+                <h3 className="text-lg font-bold text-white">JoCruit AI X</h3>
               </div>
               <p className="text-slate-400 mb-4">
+                Smarter Hiring Starts Here
+              </p>
+              <p className="text-sm text-slate-500">
                 Revolutionizing the hiring process with AI-powered interviews and assessments.
               </p>
             </div>

@@ -12,6 +12,7 @@ import { Github, Mail, Eye, EyeOff, User } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { db } from "@/lib/db"
+import Image from "next/image"
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -77,6 +78,15 @@ export default function SignUp() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/JoCruit_Logo/logo_light.png"
+              alt="JoCruit AI"
+              width={60}
+              height={60}
+              className="w-15 h-15"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
             Join JoCruit AI and start your interview journey

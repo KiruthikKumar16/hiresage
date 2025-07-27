@@ -1,5 +1,6 @@
 import { Pricing } from '@/components/pricing'
 import { Brain } from 'lucide-react'
+import Image from 'next/image'
 
 export default function PricingPage() {
   return (
@@ -10,9 +11,13 @@ export default function PricingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
+                <Image
+                  src="/JoCruit_Logo/logo_light.png"
+                  alt="JoCruit AI"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10"
+                />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
               </div>
               <div>
