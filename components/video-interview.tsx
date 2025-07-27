@@ -20,45 +20,27 @@ import {
   XCircle,
   Brain,
   Heart,
-  Activity
+  Activity,
+  Clock,
+  TrendingUp,
+  Shield
 } from 'lucide-react'
+import { AIService, type EmotionAnalysis, type CheatingDetection, type RealTimeAnalysis } from '@/lib/ai-service'
 
 interface VideoInterviewProps {
   candidateId?: string
+  candidateName?: string
+  position?: string
   onComplete?: (interviewId: string) => void
 }
 
-interface EmotionData {
-  emotion: string
-  confidence: number
-  stressLevel: number
-  engagementLevel: number
-}
-
-interface CheatingDetection {
-  multipleFaces: boolean
-  screenSharing: boolean
-  backgroundNoise: boolean
-  unusualMovements: boolean
-  suspiciousBehavior: string[]
-}
-
-interface RealTimeAnalysis {
-  speechToText: string
-  currentEmotion: string
-  confidenceScore: number
-  deceptionScore: number
-  timestamp: Date
-}
-
-export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps) {
+export function VideoInterview({ candidateId, candidateName, position, onComplete }: VideoInterviewProps) {
   const { toast } = useToast()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
+  const aiService = AIService.getInstance()
   
   const [isRecording, setIsRecording] = useState(false)
   const [isVideoOn, setIsVideoOn] = useState(true)
@@ -67,13 +49,16 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
   const [currentQuestion, setCurrentQuestion] = useState<string>('')
   const [aiResponse, setAiResponse] = useState<string>('')
   const [isPlayingAiResponse, setIsPlayingAiResponse] = useState(false)
+  const [interviewDuration, setInterviewDuration] = useState(0)
   
   // Real-time analysis states
-  const [emotionData, setEmotionData] = useState<EmotionData>({
-    emotion: 'neutral',
+  const [emotionData, setEmotionData] = useState<EmotionAnalysis>({
+    primaryEmotion: 'neutral',
     confidence: 0,
     stressLevel: 0,
-    engagementLevel: 0
+    engagementLevel: 0,
+    deceptionIndicators: [],
+    microExpressions: []
   })
   
   const [cheatingDetection, setCheatingDetection] = useState<CheatingDetection>({
@@ -81,12 +66,23 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
     screenSharing: false,
     backgroundNoise: false,
     unusualMovements: false,
-    suspiciousBehavior: []
+    suspiciousBehavior: [],
+    riskLevel: 'low',
+    recommendations: []
   })
   
   const [realTimeAnalysis, setRealTimeAnalysis] = useState<RealTimeAnalysis[]>([])
   const [transcript, setTranscript] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [interviewContext, setInterviewContext] = useState({
+    candidateName: candidateName || 'Candidate',
+    position: position || 'Position',
+    experience: 'Not specified',
+    skills: ['Technical skills', 'Problem solving', 'Communication'],
+    previousQuestions: [] as string[],
+    transcript: '',
+    realTimeAnalysis: [] as RealTimeAnalysis[]
+  })
 
   // Start video stream
   const startVideo = async () => {
@@ -110,7 +106,7 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
         setIsVideoOn(true)
         setIsAudioOn(true)
         
-        // Start emotion analysis
+        // Start analysis
         startEmotionAnalysis()
         startCheatingDetection()
         startSpeechRecognition()
@@ -138,7 +134,7 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
     setIsAudioOn(false)
   }
 
-  // Emotion analysis using canvas
+  // Enhanced emotion analysis using AI
   const startEmotionAnalysis = () => {
     const canvas = canvasRef.current
     const video = videoRef.current
@@ -147,76 +143,87 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const analyzeFrame = () => {
+    const analyzeFrame = async () => {
       if (video.videoWidth && video.videoHeight) {
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
         
-        // Simulate emotion analysis (in real app, this would use AI/ML)
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        const emotions = ['happy', 'sad', 'angry', 'surprised', 'neutral', 'confused']
-        const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)]
+        // Convert canvas to base64 for AI analysis
+        const imageData = canvas.toDataURL('image/jpeg', 0.8)
         
-        setEmotionData({
-          emotion: randomEmotion,
-          confidence: Math.random() * 100,
-          stressLevel: Math.random() * 100,
-          engagementLevel: Math.random() * 100
-        })
+        try {
+                   // Use AI service for emotion analysis
+         const analysis = await aiService.analyzeEmotionAndBehavior(
+           imageData,
+           transcript || '',
+           interviewContext
+         )
+          
+          setEmotionData(analysis.emotion)
+          setCheatingDetection(analysis.cheating)
+          
+          // Add to real-time analysis
+          const realTimeData: RealTimeAnalysis = {
+            speechToText: transcript || '',
+            currentEmotion: analysis.emotion.primaryEmotion,
+            confidenceScore: analysis.emotion.confidence,
+            deceptionScore: analysis.emotion.deceptionIndicators.length * 10,
+            stressLevel: analysis.emotion.stressLevel,
+            engagementLevel: analysis.emotion.engagementLevel,
+            timestamp: new Date()
+          }
+          
+          setRealTimeAnalysis(prev => [...prev, realTimeData])
+          
+          // Update interview context
+          setInterviewContext(prev => ({
+            ...prev,
+            realTimeAnalysis: [...prev.realTimeAnalysis, realTimeData]
+          }))
+          
+        } catch (error) {
+          console.error('Error in emotion analysis:', error)
+        }
       }
       
       if (isRecording) {
-        requestAnimationFrame(analyzeFrame)
+        setTimeout(analyzeFrame, 2000) // Analyze every 2 seconds
       }
     }
     
     analyzeFrame()
   }
 
-  // Cheating detection
+  // Enhanced cheating detection
   const startCheatingDetection = () => {
     const checkForCheating = () => {
-      // Simulate cheating detection (in real app, this would use computer vision)
-      const suspiciousBehaviors = []
+      // This would use computer vision and AI for real cheating detection
+      // For now, we'll use the AI service results
       
-      if (Math.random() > 0.95) {
-        suspiciousBehaviors.push('Multiple faces detected')
-        setCheatingDetection(prev => ({ ...prev, multipleFaces: true }))
-      }
-      
-      if (Math.random() > 0.98) {
-        suspiciousBehaviors.push('Screen sharing detected')
-        setCheatingDetection(prev => ({ ...prev, screenSharing: true }))
-      }
-      
-      if (Math.random() > 0.97) {
-        suspiciousBehaviors.push('Unusual movements detected')
-        setCheatingDetection(prev => ({ ...prev, unusualMovements: true }))
-      }
-      
-      if (suspiciousBehaviors.length > 0) {
-        setCheatingDetection(prev => ({
-          ...prev,
-          suspiciousBehavior: [...prev.suspiciousBehavior, ...suspiciousBehaviors]
-        }))
-        
+      if (cheatingDetection.riskLevel === 'high') {
+        toast({
+          title: "High Risk Activity Detected",
+          description: cheatingDetection.suspiciousBehavior.join(', '),
+          variant: "destructive"
+        })
+      } else if (cheatingDetection.riskLevel === 'medium') {
         toast({
           title: "Suspicious Activity Detected",
-          description: suspiciousBehaviors.join(', '),
+          description: cheatingDetection.suspiciousBehavior.join(', '),
           variant: "destructive"
         })
       }
       
       if (isRecording) {
-        setTimeout(checkForCheating, 5000) // Check every 5 seconds
+        setTimeout(checkForCheating, 10000) // Check every 10 seconds
       }
     }
     
     checkForCheating()
   }
 
-  // Speech recognition
+  // Enhanced speech recognition
   const startSpeechRecognition = () => {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new (window as any).webkitSpeechRecognition()
@@ -224,7 +231,7 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
       recognition.interimResults = true
       recognition.lang = 'en-US'
       
-      recognition.onresult = (event: any) => {
+      recognition.onresult = async (event: any) => {
         let interimTranscript = ''
         let finalTranscript = ''
         
@@ -240,20 +247,15 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
         const currentText = finalTranscript || interimTranscript
         setTranscript(currentText)
         
-        // Add to real-time analysis
-        const analysis: RealTimeAnalysis = {
-          speechToText: currentText,
-          currentEmotion: emotionData.emotion,
-          confidenceScore: emotionData.confidence,
-          deceptionScore: Math.random() * 100,
-          timestamp: new Date()
-        }
+        // Update interview context with new transcript
+        setInterviewContext(prev => ({
+          ...prev,
+          transcript: currentText
+        }))
         
-        setRealTimeAnalysis(prev => [...prev, analysis])
-        
-        // Generate AI response if there's substantial speech
+        // Generate AI response for substantial speech
         if (finalTranscript.length > 20 && !isProcessing) {
-          generateAiResponse(finalTranscript)
+          await generateAiResponse(finalTranscript || '')
         }
       }
       
@@ -261,29 +263,32 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
     }
   }
 
-  // Generate AI response
+  // Enhanced AI response generation
   const generateAiResponse = async (userSpeech: string) => {
     setIsProcessing(true)
     
     try {
-      // Simulate AI processing time
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Use AI service for real-time response
+      const response = await aiService.generateRealTimeResponse(
+        userSpeech,
+        emotionData,
+        interviewContext
+      )
       
-      // Generate contextual response based on user speech
-      const responses = [
-        "That's interesting. Can you elaborate on your experience with that technology?",
-        "I see. How would you handle a challenging situation in that context?",
-        "Great point. What would you do differently if you had to do it again?",
-        "Tell me more about your approach to problem-solving.",
-        "How do you stay updated with the latest trends in your field?"
-      ]
+      setAiResponse(response.question || response.feedback || '')
+      setCurrentQuestion(response.question || '')
       
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)]
-      setAiResponse(randomResponse)
-      setCurrentQuestion(randomResponse)
+      // Update interview context
+      setInterviewContext(prev => ({
+        ...prev,
+        previousQuestions: [...prev.previousQuestions, response.question || ''],
+        transcript: prev.transcript + `\nCandidate: ${userSpeech}\nAI: ${response.question || response.feedback}`
+      }))
       
       // Convert to speech and play
-      await playAiResponse(randomResponse)
+      if (response.question || response.feedback) {
+        await playAiResponse(response.question || response.feedback || '')
+      }
       
     } catch (error) {
       console.error('Error generating AI response:', error)
@@ -321,6 +326,8 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidateId,
+          candidateName: candidateName || 'Candidate',
+          position: position || 'Position',
           status: 'in-progress',
           startedAt: new Date().toISOString(),
           emotionAnalysis: emotionData,
@@ -349,6 +356,14 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
         setCurrentQuestion(initialQuestion)
         setAiResponse(initialQuestion)
         await playAiResponse(initialQuestion)
+        
+        // Start duration timer
+        const timer = setInterval(() => {
+          setInterviewDuration(prev => prev + 1)
+        }, 1000)
+        
+        // Store timer reference for cleanup
+        return () => clearInterval(timer)
       }
     } catch (error) {
       console.error('Error starting interview:', error)
@@ -374,7 +389,7 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
           body: JSON.stringify({
             status: 'completed',
             completedAt: new Date().toISOString(),
-            duration: realTimeAnalysis.length * 5, // Approximate duration
+            duration: interviewDuration,
             emotionAnalysis: emotionData,
             cheatingDetection,
             realTimeAnalysis,
@@ -456,8 +471,18 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
                   </div>
                 )}
                 
+                {/* Duration */}
+                {isRecording && (
+                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 px-2 py-1 rounded">
+                    <Clock className="h-4 w-4 text-white" />
+                    <span className="text-white text-sm font-medium">
+                      {Math.floor(interviewDuration / 60)}:{(interviewDuration % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                )}
+                
                 {/* Controls */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+                <div className="absolute bottom-4 left-4 flex gap-2">
                   <Button
                     size="sm"
                     variant={isVideoOn ? "default" : "secondary"}
@@ -493,152 +518,128 @@ export function VideoInterview({ candidateId, onComplete }: VideoInterviewProps)
 
             {/* Real-time Analysis */}
             <div className="space-y-4">
-              {/* Emotion Analysis */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    Emotion Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Current Emotion:</span>
-                    <Badge variant="outline">{emotionData.emotion}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Confidence:</span>
-                    <span className="text-xs">{emotionData.confidence.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Stress Level:</span>
-                    <span className="text-xs">{emotionData.stressLevel.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Engagement:</span>
-                    <span className="text-xs">{emotionData.engagementLevel.toFixed(1)}%</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Cheating Detection */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    Security Monitor
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Multiple Faces:</span>
-                    {cheatingDetection.multipleFaces ? (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Screen Sharing:</span>
-                    {cheatingDetection.screenSharing ? (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs">Unusual Movements:</span>
-                    {cheatingDetection.unusualMovements ? (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AI Response */}
-              {aiResponse && (
+              <Tabs defaultValue="emotion" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="emotion">Emotion</TabsTrigger>
+                  <TabsTrigger value="cheating">Security</TabsTrigger>
+                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="emotion" className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Heart className="h-4 w-4" />
+                        Emotional State
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Primary Emotion:</span>
+                        <Badge variant={emotionData.primaryEmotion === 'neutral' ? 'secondary' : 'default'}>
+                          {emotionData.primaryEmotion}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Confidence:</span>
+                        <span className="text-sm font-medium">{emotionData.confidence}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Stress Level:</span>
+                        <span className="text-sm font-medium">{emotionData.stressLevel}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Engagement:</span>
+                        <span className="text-sm font-medium">{emotionData.engagementLevel}%</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="cheating" className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <Shield className="h-4 w-4" />
+                        Security Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Risk Level:</span>
+                        <Badge 
+                          variant={
+                            cheatingDetection.riskLevel === 'high' ? 'destructive' :
+                            cheatingDetection.riskLevel === 'medium' ? 'secondary' : 'default'
+                          }
+                        >
+                          {cheatingDetection.riskLevel.toUpperCase()}
+                        </Badge>
+                      </div>
+                      {cheatingDetection.suspiciousBehavior.length > 0 && (
+                        <div className="space-y-2">
+                          <span className="text-sm font-medium">Suspicious Activity:</span>
+                          <div className="space-y-1">
+                            {cheatingDetection.suspiciousBehavior.map((behavior, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <AlertTriangle className="h-3 w-3 text-red-500" />
+                                <span className="text-xs text-red-600">{behavior}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="analysis" className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <TrendingUp className="h-4 w-4" />
+                        Real-time Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {realTimeAnalysis.slice(-5).map((analysis, index) => (
+                          <div key={index} className="text-xs p-2 bg-gray-50 rounded">
+                            <div className="flex justify-between">
+                              <span className="font-medium">{analysis.currentEmotion}</span>
+                              <span>{analysis.confidenceScore}%</span>
+                            </div>
+                            <div className="text-gray-600 truncate">{analysis.speechToText}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+              
+              {/* Current Question */}
+              {currentQuestion && (
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
                       <Brain className="h-4 w-4" />
-                      AI Response
+                      Current Question
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {isPlayingAiResponse ? "Speaking..." : "Last response:"}
-                    </p>
-                    <p className="text-sm">{aiResponse}</p>
+                    <p className="text-sm">{currentQuestion}</p>
+                    {isPlayingAiResponse && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                        <span className="text-xs text-blue-600">AI Speaking...</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
-
-          {/* Transcript and Analysis */}
-          <Tabs defaultValue="transcript" className="mt-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="transcript">Live Transcript</TabsTrigger>
-              <TabsTrigger value="analysis">Real-time Analysis</TabsTrigger>
-              <TabsTrigger value="security">Security Log</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="transcript" className="mt-4">
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="h-32 overflow-y-auto bg-muted p-3 rounded">
-                    {transcript || "Waiting for speech..."}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="analysis" className="mt-4">
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="h-32 overflow-y-auto space-y-2">
-                    {realTimeAnalysis.slice(-10).map((analysis, index) => (
-                      <div key={index} className="text-xs p-2 bg-muted rounded">
-                        <div className="flex justify-between">
-                          <span>{analysis.speechToText}</span>
-                          <span className="text-muted-foreground">
-                            {analysis.timestamp.toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <div className="flex gap-4 mt-1 text-muted-foreground">
-                          <span>Emotion: {analysis.currentEmotion}</span>
-                          <span>Confidence: {analysis.confidenceScore.toFixed(1)}%</span>
-                          <span>Deception: {analysis.deceptionScore.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="security" className="mt-4">
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="h-32 overflow-y-auto space-y-2">
-                    {cheatingDetection.suspiciousBehavior.map((behavior, index) => (
-                      <div key={index} className="text-xs p-2 bg-red-50 border border-red-200 rounded">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-3 w-3 text-red-500" />
-                          <span className="text-red-700">{behavior}</span>
-                        </div>
-                      </div>
-                    ))}
-                    {cheatingDetection.suspiciousBehavior.length === 0 && (
-                      <p className="text-xs text-muted-foreground">No suspicious activity detected</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
         </CardContent>
       </Card>
     </div>
