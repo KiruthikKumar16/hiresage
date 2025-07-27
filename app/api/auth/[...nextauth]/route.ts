@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { supabaseDb } from "@/lib/supabase-db"
 
 const handler = NextAuth({
   providers: [
@@ -30,14 +31,25 @@ const handler = NextAuth({
           return null
         }
 
-        // Simple demo authentication - accept any email/password
-        // In production, you'd want proper password hashing and database lookup
-        return {
-          id: "demo-user",
-          email: credentials.email as string,
-          name: (credentials.email as string).split('@')[0],
-          role: 'user',
+        try {
+          // Use Supabase database for authentication
+          const user = await supabaseDb.getUserByEmail(credentials.email as string)
+          
+          if (user) {
+            // In a real app, you'd hash and compare passwords
+            // For now, we'll accept any user that exists
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role || 'user',
+            }
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
         }
+        
+        return null
       }
     })
   ],
@@ -56,6 +68,30 @@ const handler = NextAuth({
       }
       return session
     },
+    async signIn({ user, account, profile }) {
+      try {
+        if (account?.provider === "google" || account?.provider === "github") {
+          // Check if user exists in our Supabase database
+          const existingUser = await supabaseDb.getUserByEmail(user.email!)
+          
+          if (!existingUser) {
+            // Create new user
+            await supabaseDb.createUser({
+              name: user.name!,
+              email: user.email!,
+              role: 'user',
+            })
+          } else {
+            // Update last login
+            await supabaseDb.updateUserLastLogin(existingUser.id)
+          }
+        }
+      } catch (error) {
+        console.error('SignIn callback error:', error)
+      }
+      
+      return true
+    }
   },
   pages: {
     signIn: '/auth/signin',
@@ -64,7 +100,7 @@ const handler = NextAuth({
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key",
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 })
 
