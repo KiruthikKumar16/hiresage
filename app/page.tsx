@@ -4,9 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Brain, Users, BarChart3, Zap, CheckCircle, Star, ArrowRight, Menu, X } from "lucide-react"
+import { Brain, Users, BarChart3, Zap, CheckCircle, Star, ArrowRight, Menu, X, Video, Shield, Building2, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { TrialSignupForm } from "@/components/trial-signup-form"
+import { ContactForm } from "@/components/contact-form"
+import { Toaster } from "sonner"
 
 export default function HireSageAIX() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -19,10 +22,10 @@ export default function HireSageAIX() {
   }, [])
 
   const founders = [
-    { name: "Shrivishaal", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Shrivishaal" },
-    { name: "Kiruthik", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Kiruthik" },
-    { name: "Kamal", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Kamal" },
-    { name: "Varun", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Varun" },
+    { name: "Shrivishaal", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Shrivishaal", linkedin: "https://www.linkedin.com/in/shrivishaal/" },
+    { name: "Kiruthik", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Kiruthik", linkedin: "https://www.linkedin.com/in/kiruthikkumarm/" },
+    { name: "Yuvanesh", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Yuvanesh", linkedin: "https://www.linkedin.com/in/yuvanesh-sankar/" },
+    { name: "Vikram", role: "Co-Founder", image: "/placeholder.svg?height=300&width=300&text=Vikram", linkedin: "https://www.linkedin.com/in/vikram-raj-455082246/" },
   ]
 
   const pricingTiers = [
@@ -63,7 +66,7 @@ export default function HireSageAIX() {
       >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <Link href="/" className="flex items-center space-x-3">
               <div className="relative">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-lg flex items-center justify-center">
                   <Brain className="w-6 h-6 text-white" />
@@ -76,7 +79,7 @@ export default function HireSageAIX() {
                 </h1>
                 <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
               </div>
-            </div>
+            </Link>
 
             <div className="hidden md:flex items-center space-x-8">
               <Link href="#features" className="text-slate-300 hover:text-white transition-colors">
@@ -91,9 +94,6 @@ export default function HireSageAIX() {
               <Link href="#contact" className="text-slate-300 hover:text-white transition-colors">
                 Contact
               </Link>
-              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-                Get Started
-              </Button>
             </div>
 
             <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -117,9 +117,11 @@ export default function HireSageAIX() {
                 <Link href="#contact" className="text-slate-300 hover:text-white transition-colors">
                   Contact
                 </Link>
-                <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 w-full">
-                  Get Started
-                </Button>
+                <Link href="/dashboard">
+                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 w-full">
+                    Get Started
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
@@ -139,24 +141,20 @@ export default function HireSageAIX() {
             </h1>
             <p className="text-xl md:text-2xl text-slate-300 mb-8 leading-relaxed">
               Assess, screen, and generate detailed reports efficiently. Perfect for universities training students and
-              companies evaluating candidates.
+              companies evaluating candidates. Now with live video interviews and real-time AI analysis.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent"
-              >
-                Watch Demo
-              </Button>
-            </div>
+                         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+               <Link href="/purchase">
+                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4">
+                   Start Free Trial
+                 </Button>
+               </Link>
+               <Link href="/purchase">
+                 <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent">
+                   View Plans
+                 </Button>
+               </Link>
+             </div>
             <div className="mt-12 flex items-center justify-center space-x-8 text-slate-400">
               <div className="flex items-center space-x-2">
                 <Star className="w-5 h-5 text-yellow-400 fill-current" />
@@ -187,12 +185,17 @@ export default function HireSageAIX() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 icon: Brain,
                 title: "AI-Driven Interviews",
                 description: "Advanced AI conducts comprehensive interviews and generates detailed assessment reports",
+              },
+              {
+                icon: Video,
+                title: "Live Video Interviews",
+                description: "Real-time video interviews with emotion analysis, cheating detection, and AI responses",
               },
               {
                 icon: Users,
@@ -203,6 +206,11 @@ export default function HireSageAIX() {
                 icon: BarChart3,
                 title: "Visual Analytics",
                 description: "Real-time dashboards and insights to track progress and performance metrics",
+              },
+              {
+                icon: Shield,
+                title: "Cheating Detection",
+                description: "Multi-layered security with face recognition, screen sharing detection, and behavior analysis",
               },
               {
                 icon: Zap,
@@ -225,6 +233,89 @@ export default function HireSageAIX() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Video Interview Showcase */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-300 bg-clip-text text-transparent">
+              Live Video Interviews with AI Analysis
+            </h2>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+              Experience the future of interviewing with real-time emotion detection, cheating prevention, and AI-powered feedback
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
+                    <Video className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">Real-Time Video Analysis</h3>
+                </div>
+                <p className="text-slate-300">High-quality video calls with live emotion detection and behavioral analysis</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full flex items-center justify-center">
+                    <Brain className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">AI-Powered Responses</h3>
+                </div>
+                <p className="text-slate-300">Contextual AI questions and text-to-speech responses based on your answers</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-400 rounded-full flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">Advanced Security</h3>
+                </div>
+                <p className="text-slate-300">Multi-layered cheating detection including face recognition and screen sharing detection</p>
+              </div>
+
+              <div className="pt-6">
+                <Link href="/dashboard">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                    Try Video Interviews
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-8 border border-slate-700">
+                <div className="aspect-video bg-slate-800 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Video className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">Live Video Interview</h3>
+                    <p className="text-slate-300">Real-time analysis with AI feedback</p>
+                  </div>
+                </div>
+                <div className="mt-6 grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">98%</div>
+                    <div className="text-xs text-slate-300">Accuracy</div>
+                  </div>
+                  <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">24/7</div>
+                    <div className="text-xs text-slate-300">Available</div>
+                  </div>
+                  <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400">AI</div>
+                    <div className="text-xs text-slate-300">Powered</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -254,33 +345,31 @@ export default function HireSageAIX() {
                     Most Popular
                   </Badge>
                 )}
-                <CardHeader>
-                  <CardTitle className="text-white text-xl">{tier.name}</CardTitle>
-                  <div className="text-3xl font-bold text-white">
-                    {tier.price}
-                    <span className="text-sm text-slate-400">/interview</span>
-                  </div>
-                  <CardDescription className="text-slate-300">{tier.interviews} interviews/month</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {tier.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                        <span className="text-slate-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className={`w-full mt-6 ${
-                      tier.popular
-                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                        : "bg-slate-700 hover:bg-slate-600"
-                    }`}
-                  >
-                    Get Started
-                  </Button>
-                </CardContent>
+                                 <CardHeader className="text-center">
+                   <CardTitle className="text-white text-xl">{tier.name}</CardTitle>
+                   <div className="text-3xl font-bold text-white">
+                     {tier.price}
+                     <span className="text-sm text-slate-400">/interview</span>
+                   </div>
+                   <CardDescription className="text-slate-300">{tier.interviews} interviews/month</CardDescription>
+                 </CardHeader>
+                 <CardContent className="text-center">
+                   <ul className="space-y-3 mb-6">
+                     {tier.features.map((feature, featureIndex) => (
+                       <li key={featureIndex} className="flex items-center justify-center space-x-2">
+                         <CheckCircle className="w-4 h-4 text-green-400" />
+                         <span className="text-slate-300">{feature}</span>
+                       </li>
+                     ))}
+                   </ul>
+                   <div className="flex justify-center">
+                     <Link href="/purchase">
+                     <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                       Get Started
+                     </Button>
+                   </Link>
+                   </div>
+                 </CardContent>
               </Card>
             ))}
           </div>
@@ -303,7 +392,8 @@ export default function HireSageAIX() {
             {founders.map((founder, index) => (
               <Card
                 key={index}
-                className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-all duration-300 group text-center"
+                className="bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 transition-all duration-300 group text-center cursor-pointer"
+                onClick={() => window.open(founder.linkedin, '_blank')}
               >
                 <CardHeader>
                   <div className="relative mx-auto mb-4">
@@ -340,28 +430,42 @@ export default function HireSageAIX() {
               Join thousands of companies and universities already using HireSage AI X to streamline their interview
               process.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4"
-              >
-                Start Your Free Trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent"
-              >
-                Schedule Demo
-              </Button>
-            </div>
+                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
+               <Link href="/purchase">
+                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4">
+                   Start Your Free Trial
+                 </Button>
+               </Link>
+               <Link href="/purchase">
+                 <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent">
+                   View All Plans
+                 </Button>
+               </Link>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-slate-800/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+              Get in Touch
+            </h2>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+              Ready to transform your hiring process? Let's discuss how HireSage AI X can help your organization.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <ContactForm />
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="py-12 bg-slate-900 border-t border-slate-800">
+      <footer className="py-12 bg-slate-900 border-t border-slate-800">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-2">
@@ -384,12 +488,12 @@ export default function HireSageAIX() {
               <h4 className="text-white font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-slate-400">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#features" className="hover:text-white transition-colors">
                     Features
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#pricing" className="hover:text-white transition-colors">
                     Pricing
                   </Link>
                 </li>
@@ -414,7 +518,7 @@ export default function HireSageAIX() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#team" className="hover:text-white transition-colors">
                     Team
                   </Link>
                 </li>
@@ -424,7 +528,7 @@ export default function HireSageAIX() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#contact" className="hover:text-white transition-colors">
                     Contact
                   </Link>
                 </li>
@@ -436,6 +540,7 @@ export default function HireSageAIX() {
           </div>
         </div>
       </footer>
+      <Toaster position="top-right" richColors />
     </div>
   )
 }
