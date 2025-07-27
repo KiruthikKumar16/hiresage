@@ -180,11 +180,9 @@ export function Pricing({ onSelectPlan }: PricingProps) {
               Organization
             </TabsTrigger>
           </TabsList>
-        </Tabs>
-      </div>
 
-      {/* Pricing Cards */}
-      <TabsContent value="individual" className="space-y-6">
+          {/* Pricing Cards */}
+          <TabsContent value="individual" className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {individualPlans.map((plan, index) => (
             <Card key={index} className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
@@ -221,10 +219,10 @@ export function Pricing({ onSelectPlan }: PricingProps) {
               </CardContent>
             </Card>
           ))}
-        </div>
-      </TabsContent>
+            </div>
+          </TabsContent>
 
-      <TabsContent value="organization" className="space-y-6">
+          <TabsContent value="organization" className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {organizationPlans.map((plan, index) => (
             <Card key={index} className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
@@ -262,7 +260,9 @@ export function Pricing({ onSelectPlan }: PricingProps) {
             </Card>
           ))}
         </div>
-      </TabsContent>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Features Section */}
       <div className="mt-16">
