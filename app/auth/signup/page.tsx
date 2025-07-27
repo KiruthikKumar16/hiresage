@@ -79,7 +79,7 @@ export default function SignUp() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
-            Join HireSage AI and start your interview journey
+            Join JoCruit AI and start your interview journey
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

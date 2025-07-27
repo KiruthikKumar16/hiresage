@@ -1,4 +1,4 @@
-# 🚀 HireSage AI - Deployment Guide
+# 🚀 JoCruit AI - Deployment Guide
 
 ## 📋 Pre-Deployment Checklist
 
@@ -205,7 +205,7 @@ If you encounter issues:
 
 ---
 
-**🎉 Your HireSage AI application is now ready for deployment!**
+**🎉 Your JoCruit AI application is now ready for deployment!**
 
 The app is fully functional with:
 - ✅ Free Gemini AI integration

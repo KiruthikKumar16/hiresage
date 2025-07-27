@@ -1,183 +1,171 @@
-# HireSage AI X - AI-Powered Interview Platform
+# JoCruit AI X - AI-Powered Interview Platform
 
-A modern, full-stack web application for AI-driven interview assessments and candidate evaluation.
+A revolutionary AI-powered interview platform that transforms the hiring process with real-time emotion detection, cheating prevention, and comprehensive analytics.
 
 ## 🚀 Features
 
-### Frontend
-- **Modern Landing Page** - Beautiful, responsive design with gradient themes
-- **Interactive Forms** - Contact forms, trial signups, and newsletter subscriptions
-- **Real-time Notifications** - Toast notifications for user feedback
-- **Mobile Responsive** - Optimized for all device sizes
-- **Accessible UI** - Built with shadcn/ui components
-
-### Backend
-- **API Routes** - RESTful endpoints for form submissions
-- **Form Validation** - Zod schema validation for all inputs
-- **Database Integration** - In-memory storage with TypeScript interfaces
-- **Error Handling** - Comprehensive error handling and user feedback
-- **Analytics** - Admin endpoint for viewing form submissions
+- **AI-Powered Interviews**: Advanced AI conducts comprehensive interviews and generates detailed assessment reports
+- **Live Video Interviews**: Real-time video interviews with emotion analysis, cheating detection, and AI responses
+- **Scalable Assessment**: Handle thousands of candidates simultaneously with cloud-based infrastructure
+- **Visual Analytics**: Real-time dashboards and insights to track progress and performance metrics
+- **Cheating Detection**: Multi-layered security with face recognition, screen sharing detection, and behavior analysis
+- **Custom Integration**: Seamless API integration with existing HR systems and workflows
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui
-- **Forms**: React Hook Form, Zod validation
-- **Notifications**: Sonner toast
-- **Icons**: Lucide React
-- **Backend**: Next.js API Routes
+- **Styling**: Tailwind CSS, Shadcn/ui
+- **Authentication**: NextAuth.js
+- **AI Integration**: Google Gemini API (FREE)
+- **Database**: LocalStorage (client-side)
+- **Deployment**: Vercel
 
-## 📁 Project Structure
-
-```
-hiresage/
-├── app/
-│   ├── api/                    # Backend API routes
-│   │   ├── contact/           # Contact form submissions
-│   │   ├── trial/             # Trial signup handling
-│   │   ├── newsletter/        # Newsletter subscriptions
-│   │   └── admin/             # Admin analytics
-│   ├── globals.css            # Global styles
-│   ├── layout.tsx             # Root layout
-│   └── page.tsx               # Main landing page
-├── components/
-│   ├── ui/                    # shadcn/ui components
-│   ├── contact-form.tsx       # Contact form component
-│   └── trial-signup-form.tsx  # Trial signup component
-├── lib/
-│   ├── db.ts                  # Database utilities
-│   └── utils.ts               # Utility functions
-└── public/                    # Static assets
-```
-
-## 🚀 Getting Started
+## 📦 Installation
 
 ### Prerequisites
+
 - Node.js 18+ 
 - pnpm (recommended) or npm
+- Google Gemini API key (FREE)
 
-### Installation
+### Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd hiresage
-   ```
+1. **Clone the repository**:
+```bash
+git clone https://github.com/yourusername/jocruit.git
+cd jocruit
+```
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   # or
-   npm install
-   ```
+2. **Install dependencies**:
+```bash
+pnpm install
+```
 
-3. **Run the development server**
-   ```bash
-   pnpm dev
-   # or
-   npm run dev
-   ```
+3. **Set up environment variables**:
+Create a `.env.local` file in the root directory:
 
-4. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+```env
+# NextAuth Configuration
+NEXTAUTH_SECRET="your-nextauth-secret-key-here"
+NEXTAUTH_URL=http://localhost:3000
 
-## 📊 API Endpoints
+# Google Gemini API (FREE)
+GEMINI_API_KEY=your-gemini-api-key-here
 
-### Contact Form
-- **POST** `/api/contact`
-- Handles contact form submissions
-- Validates: name, email, company (optional), plan (optional), message
+# Google OAuth (Optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-### Trial Signup
-- **POST** `/api/trial`
-- Handles free trial signups
-- Validates: name, email, company (optional), plan (optional), useCase (optional)
+# GitHub OAuth (Optional)
+GITHUB_ID=your-github-client-id
+GITHUB_SECRET=your-github-client-secret
+```
 
-### Newsletter
-- **POST** `/api/newsletter`
-- Handles newsletter subscriptions
-- Validates: email, name (optional)
+4. **Get your Gemini API key**:
+   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Sign in with your Google account
+   - Click "Create API Key"
+   - Copy the key to your `.env.local` file
 
-### Admin Analytics
-- **GET** `/api/admin/analytics`
-- Returns analytics data (total submissions, recent entries)
+5. **Run the development server**:
+```bash
+pnpm dev
+```
 
-## 🗄️ Database
+6. **Open your browser**:
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-Currently using in-memory storage for development. Ready for integration with:
+## 🎯 Usage
 
-- **PostgreSQL** (with Prisma)
-- **MongoDB** (with Mongoose)
-- **Supabase**
-- **Firebase**
+### For Individual Users
 
-## 🎨 Customization
+1. **Sign up** for a free account
+2. **Start your first free interview** to experience the AI
+3. **Choose a plan** that fits your needs
+4. **Conduct interviews** with real-time AI analysis
 
-### Styling
-- Modify `tailwind.config.ts` for theme customization
-- Update `app/globals.css` for global styles
-- Component styles in individual component files
+### For Organizations
 
-### Content
-- Update team members in `app/page.tsx`
-- Modify pricing tiers in the same file
-- Change features and descriptions as needed
+1. **Contact us** for enterprise pricing
+2. **Set up team accounts** with admin features
+3. **Integrate with your HR systems** via API
+4. **Scale to thousands of interviews**
 
-### Backend
-- Replace in-memory database in `lib/db.ts`
-- Add email service integration
-- Implement authentication for admin routes
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/signin` - User sign in
+- `POST /api/auth/signup` - User registration
+- `GET /api/auth/session` - Get current session
+
+### Interviews
+- `GET /api/interviews` - List all interviews
+- `POST /api/interviews` - Create new interview
+- `GET /api/interviews/[id]` - Get specific interview
+- `PUT /api/interviews/[id]` - Update interview
+- `DELETE /api/interviews/[id]` - Cancel interview
+
+### AI Integration
+- `POST /api/ai/interview` - AI interview responses
+- `POST /api/ai/analyze` - Response analysis
+
+### Video Interviews
+- `GET /api/video-interviews` - List video interviews
+- `POST /api/video-interviews` - Create video interview
+- `GET /api/video-interviews/[id]` - Get video interview
 
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
-1. Push to GitHub
-2. Connect repository to Vercel
-3. Deploy automatically
+
+1. **Connect your repository** to Vercel
+2. **Set environment variables** in Vercel dashboard
+3. **Deploy automatically** on push to main branch
 
 ### Other Platforms
-- **Netlify**: Compatible with Next.js
-- **Railway**: Good for full-stack apps
-- **DigitalOcean**: App Platform support
 
-## 🔧 Environment Variables
+- **Netlify**: Set build command to `npm run build`
+- **Railway**: Auto-detects Next.js configuration
+- **AWS/GCP**: Use Docker or serverless deployment
 
-Create a `.env.local` file for production:
+## 📊 Analytics
 
-```env
-# Database (when implementing real database)
-DATABASE_URL=your_database_url
+The platform provides comprehensive analytics including:
 
-# Email Service (when implementing email)
-EMAIL_SERVICE_API_KEY=your_email_service_key
+- **Interview Performance**: Success rates, completion times
+- **Candidate Insights**: Skills assessment, cultural fit scores
+- **AI Analysis**: Emotion detection, confidence levels
+- **System Usage**: Platform adoption, feature utilization
 
-# Admin Authentication
-ADMIN_SECRET=your_admin_secret
-```
+## 🔒 Security
 
-## 📈 Analytics
-
-View form submissions and analytics:
-```bash
-curl http://localhost:3000/api/admin/analytics
-```
+- **NextAuth.js**: Secure authentication with multiple providers
+- **JWT Tokens**: Stateless session management
+- **Input Validation**: Zod schema validation
+- **Rate Limiting**: API protection against abuse
+- **Data Privacy**: Client-side storage with encryption
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit your changes**: `git commit -m 'Add amazing feature'`
+4. **Push to the branch**: `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
-For support, email support@hiresage-ai.com or create an issue in the repository.
+For support, email support@jocruit-ai.com or create an issue in the repository.
 
----
+## 🙏 Acknowledgments
 
-**Built with ❤️ by the HireSage AI X Team** 
+- **Google Gemini API** for free AI capabilities
+- **NextAuth.js** for authentication
+- **Shadcn/ui** for beautiful components
+- **Vercel** for seamless deployment
+
+**Built with ❤️ by the JoCruit AI X Team** 

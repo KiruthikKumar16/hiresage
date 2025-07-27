@@ -59,7 +59,7 @@ export default function SignIn() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Sign in to your HireSage AI account
+            Sign in to your JoCruit AI account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

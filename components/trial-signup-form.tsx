@@ -93,7 +93,7 @@ export function TrialSignupForm({ triggerText = "Get Started", plan }: TrialSign
             Start Your Free Trial
           </DialogTitle>
           <DialogDescription className="text-slate-300">
-            Get started with HireSage AI X today. No credit card required.
+            Get started with JoCruit AI X today. No credit card required.
           </DialogDescription>
         </DialogHeader>
 

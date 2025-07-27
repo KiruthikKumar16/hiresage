@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {
-  title: 'HireSage AI - AI-Powered Interview Platform',
+  title: 'JoCruit - AI-Powered Interview Platform',
   description: 'Revolutionary AI-powered interview platform with real-time emotion detection, cheating prevention, and comprehensive analytics.',
   generator: 'Next.js',
 }

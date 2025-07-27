@@ -11,7 +11,7 @@ import { TrialSignupForm } from "@/components/trial-signup-form"
 import { ContactForm } from "@/components/contact-form"
 import { Toaster } from "sonner"
 
-export default function HireSageAIX() {
+export default function JoCruitAIX() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrollY, setScrollY] = useState(0)
 
@@ -75,7 +75,7 @@ export default function HireSageAIX() {
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  HireSage AI X
+                  JoCruit AI X
                 </h1>
                 <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
               </div>
@@ -427,7 +427,7 @@ export default function HireSageAIX() {
               Ready to Transform Your Hiring?
             </h2>
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of companies and universities already using HireSage AI X to streamline their interview
+              Join thousands of companies and universities already using JoCruit AI X to streamline their interview
               process.
             </p>
                          <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -454,7 +454,7 @@ export default function HireSageAIX() {
               Get in Touch
             </h2>
             <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Ready to transform your hiring process? Let's discuss how HireSage AI X can help your organization.
+              Ready to transform your hiring process? Let's discuss how JoCruit AI X can help your organization.
             </p>
           </div>
 
@@ -475,7 +475,7 @@ export default function HireSageAIX() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                    HireSage AI X
+                    JoCruit AI X
                   </h3>
                   <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
                 </div>
@@ -536,7 +536,7 @@ export default function HireSageAIX() {
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2024 HireSage AI X. All rights reserved.</p>
+            <p>&copy; 2024 JoCruit AI X. All rights reserved.</p>
           </div>
         </div>
       </footer>

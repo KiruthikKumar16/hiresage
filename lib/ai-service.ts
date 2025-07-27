@@ -96,7 +96,7 @@ Format as a professional report.`
     const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
     
     const systemPrompt = type === 'interview' 
-      ? `You are an expert AI interviewer for HireSage AI. Your role is to conduct professional interviews that assess candidates' skills, experience, and cultural fit. 
+      ? `You are an expert AI interviewer for JoCruit AI. Your role is to conduct professional interviews that assess candidates' skills, experience, and cultural fit. 
 
 Key responsibilities:
 1. Ask relevant, challenging questions based on the candidate's background
@@ -114,7 +114,7 @@ Respond with a JSON object containing:
   "emotion": "Detected emotion (if any)",
   "confidence": "Confidence level (0-100)"
 }`
-      : `You are an AI interview analyst for HireSage AI. Analyze the candidate's response and provide insights.
+      : `You are an AI interview analyst for JoCruit AI. Analyze the candidate's response and provide insights.
 
 Analyze for:
 1. Technical accuracy and depth

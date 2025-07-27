@@ -190,15 +190,15 @@ class Database {
   private loadFromStorage() {
     try {
       if (typeof window !== 'undefined') {
-        const contacts = localStorage.getItem('hiresage_contacts')
-        const trials = localStorage.getItem('hiresage_trials')
-        const newsletters = localStorage.getItem('hiresage_newsletters')
-        const users = localStorage.getItem('hiresage_users')
-        const candidates = localStorage.getItem('hiresage_candidates')
-        const interviews = localStorage.getItem('hiresage_interviews')
-        const videoInterviews = localStorage.getItem('hiresage_video_interviews')
-        const organizations = localStorage.getItem('hiresage_organizations')
-        const individualUsers = localStorage.getItem('hiresage_individual_users')
+        const contacts = localStorage.getItem('jocruit_contacts')
+        const trials = localStorage.getItem('jocruit_trials')
+        const newsletters = localStorage.getItem('jocruit_newsletters')
+        const users = localStorage.getItem('jocruit_users')
+        const candidates = localStorage.getItem('jocruit_candidates')
+        const interviews = localStorage.getItem('jocruit_interviews')
+        const videoInterviews = localStorage.getItem('jocruit_video_interviews')
+        const organizations = localStorage.getItem('jocruit_organizations')
+        const individualUsers = localStorage.getItem('jocruit_individual_users')
 
         if (contacts) this.contacts = JSON.parse(contacts)
         if (trials) this.trials = JSON.parse(trials)
@@ -218,15 +218,15 @@ class Database {
   private saveToStorage() {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('hiresage_contacts', JSON.stringify(this.contacts))
-        localStorage.setItem('hiresage_trials', JSON.stringify(this.trials))
-        localStorage.setItem('hiresage_newsletters', JSON.stringify(this.newsletters))
-        localStorage.setItem('hiresage_users', JSON.stringify(this.users))
-        localStorage.setItem('hiresage_candidates', JSON.stringify(this.candidates))
-        localStorage.setItem('hiresage_interviews', JSON.stringify(this.interviews))
-        localStorage.setItem('hiresage_video_interviews', JSON.stringify(this.videoInterviews))
-        localStorage.setItem('hiresage_organizations', JSON.stringify(this.organizations))
-        localStorage.setItem('hiresage_individual_users', JSON.stringify(this.individualUsers))
+        localStorage.setItem('jocruit_contacts', JSON.stringify(this.contacts))
+        localStorage.setItem('jocruit_trials', JSON.stringify(this.trials))
+        localStorage.setItem('jocruit_newsletters', JSON.stringify(this.newsletters))
+        localStorage.setItem('jocruit_users', JSON.stringify(this.users))
+        localStorage.setItem('jocruit_candidates', JSON.stringify(this.candidates))
+        localStorage.setItem('jocruit_interviews', JSON.stringify(this.interviews))
+        localStorage.setItem('jocruit_video_interviews', JSON.stringify(this.videoInterviews))
+        localStorage.setItem('jocruit_organizations', JSON.stringify(this.organizations))
+        localStorage.setItem('jocruit_individual_users', JSON.stringify(this.individualUsers))
       }
     } catch (error) {
       console.error('Error saving to storage:', error)

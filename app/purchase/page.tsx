@@ -119,7 +119,7 @@ export default function PurchasePage() {
       toast.loading("Setting up your free trial...")
       
       setTimeout(() => {
-        toast.success("Free trial activated! Welcome to HireSage AI X")
+        toast.success("Free trial activated! Welcome to JoCruit AI X")
         // Redirect to dashboard after successful trial activation
         window.location.href = "/dashboard"
       }, 2000)
@@ -160,7 +160,7 @@ export default function PurchasePage() {
       toast.loading("Processing payment...")
       
       setTimeout(() => {
-        toast.success("Payment successful! Welcome to HireSage AI X")
+        toast.success("Payment successful! Welcome to JoCruit AI X")
         // Redirect to dashboard after successful payment
         window.location.href = "/dashboard"
       }, 2000)
@@ -185,7 +185,7 @@ export default function PurchasePage() {
                  </div>
                  <div>
                    <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                     HireSage AI X
+                     JoCruit AI X
                    </h1>
                    <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
                  </div>
@@ -538,7 +538,7 @@ export default function PurchasePage() {
                      </Button>
 
                                            <p className="text-xs text-blue-300 text-center">
-                        Need help? Contact our support team at support@hiresage.com
+                        Need help? Contact our support team at support@jocruit.com
                       </p>
                   </div>
                 </CardContent>
