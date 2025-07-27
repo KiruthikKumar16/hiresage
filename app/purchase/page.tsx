@@ -119,52 +119,99 @@ export default function PurchasePage() {
 
       toast.loading("Setting up your free trial...")
       
-      setTimeout(() => {
-        toast.success("Free trial activated! Welcome to JoCruit AI X")
-        // Redirect to dashboard after successful trial activation
-        window.location.href = "/dashboard"
-      }, 2000)
-         } else {
-       // Paid plan - need payment details based on selected method
-       if (!formData.name || !formData.email) {
-         toast.error("Please fill in your name and email")
-         return
-       }
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            planId: selectedPlan
+          }),
+        })
 
-               // Get selected payment method from formData
-        const paymentMethod = formData.paymentMethod
-       
-       if (!paymentMethod) {
-         toast.error("Please select a payment method")
-         return
-       }
+        const data = await response.json()
 
-       // Validate based on payment method
-       if (paymentMethod === "credit-card") {
-         if (!formData.cardNumber || !formData.expiryDate || !formData.cvv) {
-           toast.error("Please fill in all card details")
-           return
-         }
-       } else if (paymentMethod === "upi") {
-         if (!formData.upiId) {
-           toast.error("Please enter your UPI ID")
-           return
-         }
-       } else if (paymentMethod === "net-banking") {
-         if (!formData.bankName) {
-           toast.error("Please select your bank")
-           return
-         }
-       }
+        if (response.ok) {
+          toast.success("Free trial activated! Welcome to JoCruit AI X")
+          // Redirect to dashboard after successful trial activation
+          window.location.href = "/dashboard"
+        } else {
+          toast.error(data.error || "Failed to create account")
+        }
+      } catch (error) {
+        console.error('Signup error:', error)
+        toast.error("Failed to create account. Please try again.")
+      }
+    } else {
+      // Paid plan - need payment details based on selected method
+      if (!formData.name || !formData.email) {
+        toast.error("Please fill in your name and email")
+        return
+      }
+
+      // Get selected payment method from formData
+      const paymentMethod = formData.paymentMethod
+     
+      if (!paymentMethod) {
+        toast.error("Please select a payment method")
+        return
+      }
+
+      // Validate based on payment method
+      if (paymentMethod === "credit-card") {
+        if (!formData.cardNumber || !formData.expiryDate || !formData.cvv) {
+          toast.error("Please fill in all card details")
+          return
+        }
+      } else if (paymentMethod === "upi") {
+        if (!formData.upiId) {
+          toast.error("Please enter your UPI ID")
+          return
+        }
+      } else if (paymentMethod === "net-banking") {
+        if (!formData.bankName) {
+          toast.error("Please select your bank")
+          return
+        }
+      }
 
       // Simulate payment processing
       toast.loading("Processing payment...")
       
-      setTimeout(() => {
-        toast.success("Payment successful! Welcome to JoCruit AI X")
-        // Redirect to dashboard after successful payment
-        window.location.href = "/dashboard"
-      }, 2000)
+      try {
+        // First create the account
+        const signupResponse = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            company: formData.company,
+            phone: formData.phone,
+            website: formData.website,
+            planId: selectedPlan,
+            paymentMethod: paymentMethod
+          }),
+        })
+
+        const signupData = await signupResponse.json()
+
+        if (signupResponse.ok) {
+          toast.success("Payment successful! Welcome to JoCruit AI X")
+          // Redirect to dashboard after successful payment
+          window.location.href = "/dashboard"
+        } else {
+          toast.error(signupData.error || "Failed to create account")
+        }
+      } catch (error) {
+        console.error('Signup error:', error)
+        toast.error("Failed to create account. Please try again.")
+      }
     }
   }
 

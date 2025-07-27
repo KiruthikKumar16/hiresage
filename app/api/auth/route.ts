@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { authService, userService } from '@/lib/supabase-db'
 
 // Simple session storage (in production, use Redis or database)
 const sessions = new Map()
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
       const session = sessions.get(sessionId)
       return NextResponse.json({
         user: session.user,
+        subscription: session.subscription,
         expires: session.expires
       })
     }
@@ -27,16 +29,6 @@ export async function GET(request: NextRequest) {
         id: 'credentials',
         name: 'Credentials',
         type: 'credentials'
-      },
-      google: {
-        id: 'google',
-        name: 'Google',
-        type: 'oauth'
-      },
-      github: {
-        id: 'github',
-        name: 'GitHub',
-        type: 'oauth'
       }
     })
   }
@@ -50,108 +42,51 @@ export async function POST(request: NextRequest) {
 
   if (action === 'signin') {
     const body = await request.json()
-    const { email, password, provider } = body
+    const { email, password } = body
 
-    // Handle OAuth providers
-    if (provider === 'google') {
-      // For demo, create a user from Google
-      const sessionId = Math.random().toString(36).substring(7)
-      const user = {
-        id: 'google-user',
-        email: 'demo@google.com',
-        name: 'Google User',
-        role: 'user'
-      }
-
-      const session = {
-        user,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      }
-
-      sessions.set(sessionId, session)
-
-      const response = NextResponse.json({ 
-        user,
-        sessionId 
-      })
-
-      response.cookies.set('session-id', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
-      })
-
-      return response
-    }
-
-    if (provider === 'github') {
-      // For demo, create a user from GitHub
-      const sessionId = Math.random().toString(36).substring(7)
-      const user = {
-        id: 'github-user',
-        email: 'demo@github.com',
-        name: 'GitHub User',
-        role: 'user'
-      }
-
-      const session = {
-        user,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      }
-
-      sessions.set(sessionId, session)
-
-      const response = NextResponse.json({ 
-        user,
-        sessionId 
-      })
-
-      response.cookies.set('session-id', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
-      })
-
-      return response
-    }
-
-    // Handle credentials
     if (!email || !password) {
       return NextResponse.json({ error: 'Missing credentials' }, { status: 400 })
     }
 
-    // Accept any email/password combination
-    const sessionId = Math.random().toString(36).substring(7)
-    const user = {
-      id: 'demo-user',
-      email: email,
-      name: email.split('@')[0],
-      role: 'user'
+    try {
+      // Authenticate user with database
+      const authResult = await authService.authenticateUser(email, password)
+      
+      if (!authResult) {
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      }
+
+      const { user, subscription } = authResult
+
+      // Create session
+      const sessionId = Math.random().toString(36).substring(7)
+      const session = {
+        user,
+        subscription,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      }
+
+      sessions.set(sessionId, session)
+
+      const response = NextResponse.json({ 
+        user,
+        subscription,
+        sessionId 
+      })
+
+      // Set session cookie
+      response.cookies.set('session-id', sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 // 24 hours
+      })
+
+      return response
+    } catch (error) {
+      console.error('Authentication error:', error)
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }
-
-    const session = {
-      user,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-    }
-
-    sessions.set(sessionId, session)
-
-    const response = NextResponse.json({ 
-      user,
-      sessionId 
-    })
-
-    // Set session cookie
-    response.cookies.set('session-id', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 // 24 hours
-    })
-
-    return response
   }
 
   if (action === 'signout') {

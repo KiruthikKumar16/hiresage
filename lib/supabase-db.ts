@@ -1,406 +1,313 @@
-import { supabase } from './supabase'
-import type { Database } from './supabase'
+import { createClient } from '@supabase/supabase-js'
 
-type Tables = Database['public']['Tables']
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// User types
-export type User = Tables['users']['Row']
-export type UserInsert = Tables['users']['Insert']
-export type UserUpdate = Tables['users']['Update']
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Candidate types
-export type Candidate = Tables['candidates']['Row']
-export type CandidateInsert = Tables['candidates']['Insert']
-export type CandidateUpdate = Tables['candidates']['Update']
+// Database interfaces
+export interface User {
+  id: string
+  email: string
+  name: string
+  company?: string
+  phone?: string
+  website?: string
+  created_at: string
+  updated_at: string
+}
 
-// Interview types
-export type Interview = Tables['interviews']['Row']
-export type InterviewInsert = Tables['interviews']['Insert']
-export type InterviewUpdate = Tables['interviews']['Update']
+export interface Subscription {
+  id: string
+  user_id: string
+  plan_id: string
+  plan_name: string
+  interviews_remaining: number
+  total_interviews: number
+  price_per_interview: number
+  status: 'active' | 'expired' | 'cancelled'
+  payment_method?: string
+  payment_status: 'pending' | 'completed' | 'failed'
+  trial_end_date?: string
+  expires_at?: string
+  created_at: string
+  updated_at: string
+}
 
-// Video Interview types
-export type VideoInterview = Tables['video_interviews']['Row']
-export type VideoInterviewInsert = Tables['video_interviews']['Insert']
-export type VideoInterviewUpdate = Tables['video_interviews']['Update']
+export interface Interview {
+  id: string
+  user_id: string
+  candidate_name: string
+  position: string
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  score?: number
+  duration?: number
+  transcript?: string
+  ai_feedback?: string
+  created_at: string
+  updated_at: string
+}
 
-// Organization types
-export type Organization = Tables['organizations']['Row']
-export type OrganizationInsert = Tables['organizations']['Insert']
-export type OrganizationUpdate = Tables['organizations']['Update']
+export interface Message {
+  id: string
+  interview_id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
 
-// Individual User types
-export type IndividualUser = Tables['individual_users']['Row']
-export type IndividualUserInsert = Tables['individual_users']['Insert']
-export type IndividualUserUpdate = Tables['individual_users']['Update']
-
-class SupabaseDatabase {
-  // Users
-  async createUser(data: Omit<UserInsert, 'id' | 'created_at'>): Promise<User> {
-    const { data: user, error } = await supabase
+// User management functions
+export const userService = {
+  // Create a new user
+  async createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User> {
+    const { data, error } = await supabase
       .from('users')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-      })
+      .insert([userData])
       .select()
       .single()
 
     if (error) throw error
-    return user
-  }
+    return data
+  },
 
+  // Get user by email
   async getUserByEmail(email: string): Promise<User | null> {
-    const { data: user, error } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .single()
 
     if (error && error.code !== 'PGRST116') throw error
-    return user
-  }
+    return data
+  },
 
-  async getUsers(): Promise<User[]> {
-    const { data: users, error } = await supabase
+  // Get user by ID
+  async getUserById(id: string): Promise<User | null> {
+    const { data, error } = await supabase
       .from('users')
       .select('*')
-      .order('created_at', { ascending: false })
+      .eq('id', id)
+      .single()
 
-    if (error) throw error
-    return users
-  }
+    if (error && error.code !== 'PGRST116') throw error
+    return data
+  },
 
-  async updateUserLastLogin(userId: string): Promise<void> {
-    const { error } = await supabase
+  // Update user
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const { data, error } = await supabase
       .from('users')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', userId)
-
-    if (error) throw error
-  }
-
-  // Candidates
-  async createCandidate(data: Omit<CandidateInsert, 'id' | 'created_at' | 'updated_at'>): Promise<Candidate> {
-    const { data: candidate, error } = await supabase
-      .from('candidates')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return candidate
-  }
-
-  async getCandidates(): Promise<Candidate[]> {
-    const { data: candidates, error } = await supabase
-      .from('candidates')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-    return candidates
-  }
-
-  async getCandidateById(id: string): Promise<Candidate | null> {
-    const { data: candidate, error } = await supabase
-      .from('candidates')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return candidate
-  }
-
-  async updateCandidate(id: string, data: Partial<CandidateUpdate>): Promise<Candidate | null> {
-    const { data: candidate, error } = await supabase
-      .from('candidates')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('id', id)
       .select()
       .single()
 
     if (error) throw error
-    return candidate
-  }
-
-  async deleteCandidate(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('candidates')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-    return true
-  }
-
-  // Interviews
-  async createInterview(data: Omit<InterviewInsert, 'id' | 'created_at' | 'updated_at'>): Promise<Interview> {
-    const { data: interview, error } = await supabase
-      .from('interviews')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return interview
-  }
-
-  async getInterviews(): Promise<Interview[]> {
-    const { data: interviews, error } = await supabase
-      .from('interviews')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-    return interviews
-  }
-
-  async getInterviewById(id: string): Promise<Interview | null> {
-    const { data: interview, error } = await supabase
-      .from('interviews')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return interview
-  }
-
-  async updateInterview(id: string, data: Partial<InterviewUpdate>): Promise<Interview | null> {
-    const { data: interview, error } = await supabase
-      .from('interviews')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return interview
-  }
-
-  // Video Interviews
-  async createVideoInterview(data: Omit<VideoInterviewInsert, 'id' | 'created_at' | 'updated_at'>): Promise<VideoInterview> {
-    const { data: videoInterview, error } = await supabase
-      .from('video_interviews')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return videoInterview
-  }
-
-  async getVideoInterviews(): Promise<VideoInterview[]> {
-    const { data: videoInterviews, error } = await supabase
-      .from('video_interviews')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-    return videoInterviews
-  }
-
-  async getVideoInterviewById(id: string): Promise<VideoInterview | null> {
-    const { data: videoInterview, error } = await supabase
-      .from('video_interviews')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return videoInterview
-  }
-
-  async updateVideoInterview(id: string, data: Partial<VideoInterviewUpdate>): Promise<VideoInterview | null> {
-    const { data: videoInterview, error } = await supabase
-      .from('video_interviews')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return videoInterview
-  }
-
-  // Organizations
-  async createOrganization(data: Omit<OrganizationInsert, 'id' | 'created_at' | 'updated_at'>): Promise<Organization> {
-    const { data: organization, error } = await supabase
-      .from('organizations')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return organization
-  }
-
-  async getOrganizations(): Promise<Organization[]> {
-    const { data: organizations, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-    return organizations
-  }
-
-  async getOrganizationById(id: string): Promise<Organization | null> {
-    const { data: organization, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return organization
-  }
-
-  async updateOrganization(id: string, data: Partial<OrganizationUpdate>): Promise<Organization | null> {
-    const { data: organization, error } = await supabase
-      .from('organizations')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return organization
-  }
-
-  // Individual Users
-  async createIndividualUser(data: Omit<IndividualUserInsert, 'id' | 'created_at' | 'updated_at'>): Promise<IndividualUser> {
-    const { data: individualUser, error } = await supabase
-      .from('individual_users')
-      .insert({
-        ...data,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return individualUser
-  }
-
-  async getIndividualUsers(): Promise<IndividualUser[]> {
-    const { data: individualUsers, error } = await supabase
-      .from('individual_users')
-      .select('*')
-      .order('updated_at', { ascending: false })
-
-    if (error) throw error
-    return individualUsers
-  }
-
-  async getIndividualUserById(id: string): Promise<IndividualUser | null> {
-    const { data: individualUser, error } = await supabase
-      .from('individual_users')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return individualUser
-  }
-
-  async getIndividualUserByEmail(email: string): Promise<IndividualUser | null> {
-    const { data: individualUser, error } = await supabase
-      .from('individual_users')
-      .select('*')
-      .eq('email', email)
-      .single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return individualUser
-  }
-
-  async updateIndividualUser(id: string, data: Partial<IndividualUserUpdate>): Promise<IndividualUser | null> {
-    const { data: individualUser, error } = await supabase
-      .from('individual_users')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return individualUser
-  }
-
-  // Analytics
-  async getAnalytics() {
-    const [
-      { count: totalInterviews },
-      { count: totalCandidates },
-      { data: interviews }
-    ] = await Promise.all([
-      supabase.from('interviews').select('*', { count: 'exact', head: true }),
-      supabase.from('candidates').select('*', { count: 'exact', head: true }),
-      supabase.from('interviews').select('*').eq('status', 'completed')
-    ])
-
-    const completedInterviews = interviews.data?.length || 0
-    const averageScore = interviews.data?.reduce((sum, interview) => sum + (interview.score || 0), 0) / completedInterviews || 0
-
-    return {
-      totalInterviews: totalInterviews || 0,
-      completedInterviews,
-      averageScore: Math.round(averageScore * 100) / 100,
-      averageDuration: 25, // Mock data
-      totalCandidates: totalCandidates || 0,
-      thisWeek: Math.floor(Math.random() * 10) + 5, // Mock data
-      topPositions: [
-        { position: 'Software Engineer', count: 15, avgScore: 85 },
-        { position: 'Product Manager', count: 8, avgScore: 78 },
-        { position: 'Data Scientist', count: 6, avgScore: 82 }
-      ],
-      scoreDistribution: [
-        { range: '90-100', count: 12, percentage: 30 },
-        { range: '80-89', count: 18, percentage: 45 },
-        { range: '70-79', count: 8, percentage: 20 },
-        { range: '60-69', count: 2, percentage: 5 }
-      ],
-      weeklyTrends: [
-        { week: 'Week 1', interviews: 8, avgScore: 82 },
-        { week: 'Week 2', interviews: 12, avgScore: 85 },
-        { week: 'Week 3', interviews: 10, avgScore: 79 },
-        { week: 'Week 4', interviews: 15, avgScore: 87 }
-      ]
-    }
+    return data
   }
 }
 
-export const supabaseDb = new SupabaseDatabase() 
+// Subscription management functions
+export const subscriptionService = {
+  // Create a new subscription
+  async createSubscription(subscriptionData: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>): Promise<Subscription> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .insert([subscriptionData])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Get active subscription for user
+  async getActiveSubscription(userId: string): Promise<Subscription | null> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data
+  },
+
+  // Update subscription
+  async updateSubscription(id: string, updates: Partial<Subscription>): Promise<Subscription> {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Decrement interviews remaining
+  async useInterview(userId: string): Promise<boolean> {
+    const subscription = await this.getActiveSubscription(userId)
+    if (!subscription) return false
+
+    if (subscription.interviews_remaining <= 0) return false
+
+    await this.updateSubscription(subscription.id, {
+      interviews_remaining: subscription.interviews_remaining - 1
+    })
+
+    return true
+  }
+}
+
+// Interview management functions
+export const interviewService = {
+  // Create a new interview
+  async createInterview(interviewData: Omit<Interview, 'id' | 'created_at' | 'updated_at'>): Promise<Interview> {
+    const { data, error } = await supabase
+      .from('interviews')
+      .insert([interviewData])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Get interviews for user
+  async getUserInterviews(userId: string): Promise<Interview[]> {
+    const { data, error } = await supabase
+      .from('interviews')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  // Update interview
+  async updateInterview(id: string, updates: Partial<Interview>): Promise<Interview> {
+    const { data, error } = await supabase
+      .from('interviews')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Add message to interview
+  async addMessage(messageData: Omit<Message, 'id' | 'timestamp'>): Promise<Message> {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{ ...messageData, timestamp: new Date().toISOString() }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Get messages for interview
+  async getInterviewMessages(interviewId: string): Promise<Message[]> {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('interview_id', interviewId)
+      .order('timestamp', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  }
+}
+
+// Authentication functions
+export const authService = {
+  // Authenticate user with email and password
+  async authenticateUser(email: string, password: string): Promise<{ user: User; subscription: Subscription | null } | null> {
+    // In a real app, you'd hash the password and verify it
+    // For now, we'll just check if the user exists
+    const user = await userService.getUserByEmail(email)
+    if (!user) return null
+
+    // Check if user has active subscription
+    const subscription = await subscriptionService.getActiveSubscription(user.id)
+    
+    return { user, subscription }
+  },
+
+  // Create user account with subscription
+  async createAccount(userData: {
+    name: string
+    email: string
+    company?: string
+    phone?: string
+    website?: string
+  }, planId: string): Promise<{ user: User; subscription: Subscription }> {
+    // Create user
+    const user = await userService.createUser({
+      ...userData
+    })
+
+    // Define plan details
+    const planDetails = {
+      'free-trial': { name: 'Free Trial', interviews: 1, price: 0, trial: true },
+      'starter': { name: 'Starter', interviews: 10, price: 1.80, trial: false },
+      'growth': { name: 'Growth', interviews: 50, price: 1.50, trial: false },
+      'pro': { name: 'Pro', interviews: 200, price: 1.20, trial: false },
+      'enterprise': { name: 'Enterprise', interviews: 1000, price: 1.00, trial: false }
+    }
+
+    const plan = planDetails[planId as keyof typeof planDetails]
+    if (!plan) throw new Error('Invalid plan')
+
+    // Create subscription
+    const subscription = await subscriptionService.createSubscription({
+      user_id: user.id,
+      plan_id: planId,
+      plan_name: plan.name,
+      interviews_remaining: plan.interviews,
+      total_interviews: plan.interviews,
+      price_per_interview: plan.price,
+      status: 'active',
+      payment_status: plan.trial ? 'completed' : 'completed', // For demo, assume payment is completed
+      trial_end_date: plan.trial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      expires_at: plan.trial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+    })
+
+    return { user, subscription }
+  }
+}
+
+// Legacy functions for backward compatibility
+export const db = {
+  // ... existing functions ...
+  getUsers: async () => {
+    const { data, error } = await supabase.from('users').select('*')
+    if (error) throw error
+    return data || []
+  },
+
+  getInterviews: async () => {
+    const { data, error } = await supabase.from('interviews').select('*')
+    if (error) throw error
+    return data || []
+  },
+
+  getAnalytics: async () => {
+    // Mock analytics data
+    return {
+      totalInterviews: 24,
+      completedInterviews: 18,
+      averageScore: 85,
+      totalCandidates: 15,
+      thisWeek: 5
+    }
+  }
+} 

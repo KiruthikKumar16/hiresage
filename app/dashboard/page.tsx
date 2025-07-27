@@ -42,7 +42,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth()
+  const { user, subscription, signOut } = useAuth()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -213,6 +213,24 @@ export default function Dashboard() {
               <p className="text-slate-300">
                 Here's your interview performance overview
               </p>
+              
+              {/* Subscription Info */}
+              {subscription && (
+                <div className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{subscription.plan_name}</h3>
+                      <p className="text-slate-300">
+                        {subscription.interviews_remaining} interviews remaining
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-slate-400">Plan</p>
+                      <p className="text-white font-semibold">${subscription.price_per_interview}/interview</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Stats Cards */}
