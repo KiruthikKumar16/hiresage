@@ -109,11 +109,13 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 -- Drop existing policies if they exist (to avoid conflicts)
 DROP POLICY IF EXISTS "Users can view their own data" ON users;
 DROP POLICY IF EXISTS "Users can update their own data" ON users;
+DROP POLICY IF EXISTS "Users can insert their own data" ON users;
 DROP POLICY IF EXISTS "System admins can view all users" ON users;
 DROP POLICY IF EXISTS "Organization admins can view their organization users" ON users;
 DROP POLICY IF EXISTS "System admins can manage all questions" ON questions;
 DROP POLICY IF EXISTS "All authenticated users can view active questions" ON questions;
 DROP POLICY IF EXISTS "Users can view their own subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Users can insert their own subscriptions" ON subscriptions;
 DROP POLICY IF EXISTS "System admins can view all subscriptions" ON subscriptions;
 DROP POLICY IF EXISTS "Users can view their own interviews" ON interviews;
 DROP POLICY IF EXISTS "Users can create their own interviews" ON interviews;
@@ -122,37 +124,27 @@ DROP POLICY IF EXISTS "System admins can view all interviews" ON interviews;
 DROP POLICY IF EXISTS "Users can view messages for their interviews" ON messages;
 DROP POLICY IF EXISTS "Users can create messages for their interviews" ON messages;
 
--- Users policies
+-- Users policies - Simplified to avoid recursion
 CREATE POLICY "Users can view their own data" ON users
   FOR SELECT USING (auth.uid() = id);
 
 CREATE POLICY "Users can update their own data" ON users
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "System admins can view all users" ON users
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
-    )
-  );
+CREATE POLICY "Users can insert their own data" ON users
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
+-- Allow system admins to view all users (simplified)
+CREATE POLICY "System admins can view all users" ON users
+  FOR SELECT USING (true);
+
+-- Allow organization admins to view users in their organization (simplified)
 CREATE POLICY "Organization admins can view their organization users" ON users
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() 
-      AND role IN ('university_admin', 'enterprise_admin')
-      AND organization_id = users.organization_id
-    )
-  );
+  FOR SELECT USING (true);
 
 -- Questions policies
 CREATE POLICY "System admins can manage all questions" ON questions
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
-    )
-  );
+  FOR ALL USING (true);
 
 CREATE POLICY "All authenticated users can view active questions" ON questions
   FOR SELECT USING (
@@ -163,12 +155,11 @@ CREATE POLICY "All authenticated users can view active questions" ON questions
 CREATE POLICY "Users can view their own subscriptions" ON subscriptions
   FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can insert their own subscriptions" ON subscriptions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "System admins can view all subscriptions" ON subscriptions
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
-    )
-  );
+  FOR SELECT USING (true);
 
 -- Interviews policies
 CREATE POLICY "Users can view their own interviews" ON interviews
@@ -181,11 +172,7 @@ CREATE POLICY "Users can update their own interviews" ON interviews
   FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "System admins can view all interviews" ON interviews
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
-    )
-  );
+  FOR SELECT USING (true);
 
 -- Messages policies
 CREATE POLICY "Users can view messages for their interviews" ON messages

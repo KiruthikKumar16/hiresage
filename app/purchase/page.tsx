@@ -58,6 +58,17 @@ const plans = {
     description: "For serious career development",
     period: "per month"
   },
+  "professional": {
+    id: "professional",
+    name: "Professional",
+    price: 1.20,
+    interviews: 200,
+    features: ["Custom question sets", "API integration", "White-label options", "Dedicated support"],
+    popular: false,
+    trial: false,
+    description: "For serious career development",
+    period: "per month"
+  },
   "enterprise": {
     id: "enterprise",
     name: "Enterprise",
@@ -91,7 +102,8 @@ function PurchasePageContent() {
     billingAddress: "",
   })
 
-  const selectedPlan = plans[planId as keyof typeof plans]
+  // Add error handling for invalid plan IDs
+  const selectedPlan = plans[planId as keyof typeof plans] || plans['free-trial']
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
