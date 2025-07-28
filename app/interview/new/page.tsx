@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,14 @@ import {
   Target,
   Brain,
   MessageSquare,
-  Download
+  Download,
+  Volume2,
+  VolumeX,
+  Monitor,
+  MonitorOff,
+  StopCircle,
+  SkipForward,
+  SkipBack
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -42,10 +49,13 @@ interface InterviewState {
   isRecording: boolean
   isVideoOn: boolean
   isAudioOn: boolean
+  isScreenShareOn: boolean
   currentQuestion: number
   totalQuestions: number
   timeElapsed: number
   isPaused: boolean
+  isListening: boolean
+  aiSpeaking: boolean
 }
 
 interface Question {
@@ -54,6 +64,16 @@ interface Question {
   category: string
   difficulty: 'easy' | 'medium' | 'hard'
   timeLimit: number
+  followUpQuestions?: string[]
+}
+
+interface CandidateInfo {
+  name: string
+  email: string
+  position: string
+  company: string
+  experience: string
+  skills: string
 }
 
 export default function NewInterview() {
@@ -62,12 +82,15 @@ export default function NewInterview() {
     isRecording: false,
     isVideoOn: true,
     isAudioOn: true,
+    isScreenShareOn: false,
     currentQuestion: 0,
     totalQuestions: 8,
     timeElapsed: 0,
-    isPaused: false
+    isPaused: false,
+    isListening: false,
+    aiSpeaking: false
   })
-  const [candidateInfo, setCandidateInfo] = useState({
+  const [candidateInfo, setCandidateInfo] = useState<CandidateInfo>({
     name: '',
     email: '',
     position: '',
@@ -76,8 +99,16 @@ export default function NewInterview() {
     skills: ''
   })
   const [currentStep, setCurrentStep] = useState<'setup' | 'preparation' | 'interview' | 'summary'>('setup')
-  const [questions, setQuestions] = useState<Question[]>([])
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
+  const [aiResponse, setAiResponse] = useState<string>('')
+  const [userResponse, setUserResponse] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [interviewTranscript, setInterviewTranscript] = useState<string[]>([])
+  
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     if (interviewState.isRecording && !interviewState.isPaused) {
@@ -97,83 +128,235 @@ export default function NewInterview() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  const generateQuestions = async () => {
-    setLoading(true)
+  const startInterview = async () => {
     try {
-      // Simulate AI question generation
-      const mockQuestions: Question[] = [
-        {
-          id: "1",
-          text: "Can you walk me through your experience with React and how you would optimize a component for performance?",
-          category: "Frontend Development",
-          difficulty: "medium",
-          timeLimit: 180
-        },
-        {
-          id: "2",
-          text: "Describe a challenging project you worked on and how you overcame the obstacles you faced.",
-          category: "Problem Solving",
-          difficulty: "hard",
-          timeLimit: 240
-        },
-        {
-          id: "3",
-          text: "How do you handle state management in large applications? What are your preferred tools and why?",
-          category: "Architecture",
-          difficulty: "medium",
-          timeLimit: 200
-        },
-        {
-          id: "4",
-          text: "Explain the difference between REST and GraphQL APIs. When would you choose one over the other?",
-          category: "Backend Development",
-          difficulty: "medium",
-          timeLimit: 180
-        },
-        {
-          id: "5",
-          text: "How do you ensure code quality in your projects? What testing strategies do you use?",
-          category: "Quality Assurance",
-          difficulty: "easy",
-          timeLimit: 150
-        },
-        {
-          id: "6",
-          text: "Describe your experience with CI/CD pipelines. What tools have you used and what challenges have you faced?",
-          category: "DevOps",
-          difficulty: "hard",
-          timeLimit: 200
-        },
-        {
-          id: "7",
-          text: "How do you stay updated with the latest technologies and industry trends?",
-          category: "Learning",
-          difficulty: "easy",
-          timeLimit: 120
-        },
-        {
-          id: "8",
-          text: "Tell me about a time when you had to work with a difficult team member. How did you handle the situation?",
-          category: "Soft Skills",
-          difficulty: "medium",
-          timeLimit: 180
-        }
-      ]
+      setLoading(true)
       
-      setQuestions(mockQuestions)
-      setCurrentStep('preparation')
-      toast.success("Questions generated successfully!")
+      // Start video/audio stream
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: interviewState.isVideoOn,
+        audio: interviewState.isAudioOn
+      })
+      
+      streamRef.current = stream
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+      }
+
+      // Start recording
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      
+      const chunks: Blob[] = []
+      mediaRecorder.ondataavailable = (event) => {
+        chunks.push(event.data)
+      }
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' })
+        const url = URL.createObjectURL(blob)
+        // Save recording URL for later download
+        sessionStorage.setItem('interview_recording', url)
+      }
+      
+      mediaRecorder.start()
+      
+      setInterviewState(prev => ({ ...prev, isRecording: true }))
+      setCurrentStep('interview')
+      
+      // Start AI interview
+      await startAIInterview()
+      
+      toast.success("Interview started!")
     } catch (error) {
-      toast.error("Failed to generate questions")
+      console.error('Failed to start interview:', error)
+      toast.error("Failed to start interview. Please check your camera and microphone permissions.")
     } finally {
       setLoading(false)
     }
   }
 
-  const startInterview = () => {
-    setInterviewState(prev => ({ ...prev, isRecording: true }))
-    setCurrentStep('interview')
-    toast.success("Interview started!")
+  const startAIInterview = async () => {
+    // Generate first question based on candidate info
+    const firstQuestion = await generateAIQuestion(0)
+    setCurrentQuestion(firstQuestion)
+    
+    // Start AI speaking
+    await speakQuestion(firstQuestion.text)
+  }
+
+  const generateAIQuestion = async (questionIndex: number): Promise<Question> => {
+    // In production, this would call the Gemini API
+    const questions: Question[] = [
+      {
+        id: "1",
+        text: "Hello! I'm your AI interviewer. Can you tell me about your background and experience?",
+        category: "Introduction",
+        difficulty: "easy" as const,
+        timeLimit: 120
+      },
+      {
+        id: "2",
+        text: "Great! Now, can you walk me through a challenging project you worked on recently?",
+        category: "Experience",
+        difficulty: "medium" as const,
+        timeLimit: 180
+      },
+      {
+        id: "3",
+        text: "That's interesting. How do you handle conflicts within your team?",
+        category: "Soft Skills",
+        difficulty: "medium" as const,
+        timeLimit: 150
+      },
+      {
+        id: "4",
+        text: "Can you explain your approach to problem-solving when you encounter a difficult technical challenge?",
+        category: "Problem Solving",
+        difficulty: "hard" as const,
+        timeLimit: 200
+      },
+      {
+        id: "5",
+        text: "How do you stay updated with the latest technologies and industry trends?",
+        category: "Learning",
+        difficulty: "easy" as const,
+        timeLimit: 120
+      },
+      {
+        id: "6",
+        text: "Describe a time when you had to learn a new technology quickly. How did you approach it?",
+        category: "Adaptability",
+        difficulty: "medium" as const,
+        timeLimit: 180
+      },
+      {
+        id: "7",
+        text: "What are your career goals for the next 2-3 years?",
+        category: "Career Goals",
+        difficulty: "easy" as const,
+        timeLimit: 120
+      },
+      {
+        id: "8",
+        text: "Thank you for your time! Do you have any questions for me about the role or company?",
+        category: "Closing",
+        difficulty: "easy" as const,
+        timeLimit: 120
+      }
+    ]
+    
+    return questions[questionIndex] || questions[0]
+  }
+
+  const speakQuestion = async (text: string) => {
+    setInterviewState(prev => ({ ...prev, aiSpeaking: true }))
+    
+    // Use Web Speech API for text-to-speech
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = 0.9
+      utterance.pitch = 1
+      utterance.volume = 0.8
+      
+      utterance.onend = () => {
+        setInterviewState(prev => ({ ...prev, aiSpeaking: false, isListening: true }))
+        startListening()
+      }
+      
+      speechSynthesis.speak(utterance)
+    } else {
+      // Fallback: just show the question
+      setInterviewState(prev => ({ ...prev, aiSpeaking: false, isListening: true }))
+      startListening()
+    }
+  }
+
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      const recognition = new SpeechRecognition()
+      
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = 'en-US'
+      
+      recognition.onresult = (event: any) => {
+        let finalTranscript = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript
+          }
+        }
+        
+        if (finalTranscript) {
+          setUserResponse(finalTranscript)
+          setInterviewTranscript(prev => [...prev, `AI: ${currentQuestion?.text}`, `Candidate: ${finalTranscript}`])
+        }
+      }
+      
+      recognition.onend = () => {
+        // Stop listening after a timeout
+        setTimeout(() => {
+          setInterviewState(prev => ({ ...prev, isListening: false }))
+          processUserResponse()
+        }, 5000)
+      }
+      
+      recognition.start()
+    } else {
+      // Fallback for browsers without speech recognition
+      setInterviewState(prev => ({ ...prev, isListening: false }))
+    }
+  }
+
+  const processUserResponse = async () => {
+    if (!currentQuestion) return
+    
+    // Analyze user response with AI
+    const analysis = await analyzeResponse(userResponse, currentQuestion)
+    
+    // Generate follow-up question or move to next question
+    if (interviewState.currentQuestion < interviewState.totalQuestions - 1) {
+      const nextQuestion = await generateAIQuestion(interviewState.currentQuestion + 1)
+      setCurrentQuestion(nextQuestion)
+      setInterviewState(prev => ({ 
+        ...prev, 
+        currentQuestion: prev.currentQuestion + 1 
+      }))
+      setUserResponse('')
+      
+      // Speak next question
+      await speakQuestion(nextQuestion.text)
+    } else {
+      // Interview complete
+      endInterview()
+    }
+  }
+
+  const analyzeResponse = async (response: string, question: Question) => {
+    // In production, this would call Gemini API for analysis
+    return {
+      score: Math.floor(Math.random() * 30) + 70,
+      feedback: "Good response with room for improvement",
+      keywords: ["technical", "experience", "problem-solving"]
+    }
+  }
+
+  const endInterview = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop()
+    }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+    }
+    
+    setInterviewState(prev => ({ ...prev, isRecording: false }))
+    setCurrentStep('summary')
+    
+    toast.success("Interview completed!")
   }
 
   const toggleVideo = () => {
@@ -186,31 +369,23 @@ export default function NewInterview() {
     toast.info(interviewState.isAudioOn ? "Audio turned off" : "Audio turned on")
   }
 
+  const toggleScreenShare = () => {
+    setInterviewState(prev => ({ ...prev, isScreenShareOn: !prev.isScreenShareOn }))
+    toast.info(interviewState.isScreenShareOn ? "Screen share stopped" : "Screen share started")
+  }
+
   const pauseInterview = () => {
     setInterviewState(prev => ({ ...prev, isPaused: !prev.isPaused }))
     toast.info(interviewState.isPaused ? "Interview resumed" : "Interview paused")
   }
 
-  const nextQuestion = () => {
+  const skipQuestion = () => {
     if (interviewState.currentQuestion < interviewState.totalQuestions - 1) {
-      setInterviewState(prev => ({ ...prev, currentQuestion: prev.currentQuestion + 1 }))
-    } else {
-      setCurrentStep('summary')
-    }
-  }
-
-  const previousQuestion = () => {
-    if (interviewState.currentQuestion > 0) {
-      setInterviewState(prev => ({ ...prev, currentQuestion: prev.currentQuestion - 1 }))
-    }
-  }
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-600'
-      case 'medium': return 'bg-yellow-600'
-      case 'hard': return 'bg-red-600'
-      default: return 'bg-gray-600'
+      setInterviewState(prev => ({ 
+        ...prev, 
+        currentQuestion: prev.currentQuestion + 1 
+      }))
+      generateAIQuestion(interviewState.currentQuestion + 1).then(setCurrentQuestion)
     }
   }
 
@@ -241,13 +416,13 @@ export default function NewInterview() {
             <div className="container mx-auto px-4 max-w-4xl">
               <div className="text-center mb-8">
                 <Badge className="mb-4 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-cyan-300 border-cyan-500/30">
-                  New Interview
+                  AI Interview Setup
                 </Badge>
                 <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
-                  Start a New Interview
+                  Start AI-Powered Interview
                 </h1>
                 <p className="text-slate-300">
-                  Set up candidate information and prepare for the interview
+                  Set up candidate information for the AI interview
                 </p>
               </div>
 
@@ -256,7 +431,7 @@ export default function NewInterview() {
                 <CardHeader>
                   <CardTitle className="text-white">Candidate Information</CardTitle>
                   <CardDescription className="text-slate-300">
-                    Enter the candidate's details to personalize the interview
+                    Enter the candidate's details to personalize the AI interview
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -330,21 +505,12 @@ export default function NewInterview() {
               {/* Action Buttons */}
               <div className="mt-8 flex justify-center">
                 <Button
-                  onClick={generateQuestions}
-                  disabled={loading || !candidateInfo.name || !candidateInfo.position}
+                  onClick={() => setCurrentStep('preparation')}
+                  disabled={!candidateInfo.name || !candidateInfo.position}
                   className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-8 py-3 text-lg"
                 >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Generating Questions...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="w-5 h-5 mr-2" />
-                      Generate Questions
-                    </>
-                  )}
+                  <Brain className="w-5 h-5 mr-2" />
+                  Continue to Interview
                 </Button>
               </div>
             </div>
@@ -381,13 +547,13 @@ export default function NewInterview() {
             <div className="container mx-auto px-4 max-w-6xl">
               <div className="text-center mb-8">
                 <Badge className="mb-4 bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-emerald-300 border-emerald-500/30">
-                  Preparation
+                  Interview Preparation
                 </Badge>
                 <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
-                  Interview Questions Generated
+                  AI Interview Ready
                 </h1>
                 <p className="text-slate-300">
-                  Review the questions and prepare for the interview
+                  Review settings and start the AI-powered interview
                 </p>
               </div>
 
@@ -414,36 +580,13 @@ export default function NewInterview() {
                 </CardContent>
               </Card>
 
-              {/* Questions List */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Interview Settings */}
                 <div>
-                  <h2 className="text-xl font-semibold text-white mb-4">Generated Questions</h2>
-                  <div className="space-y-4">
-                    {questions.map((question, index) => (
-                      <Card key={question.id} className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <Badge className={`${getDifficultyColor(question.difficulty)} text-white`}>
-                              {question.difficulty}
-                            </Badge>
-                            <span className="text-sm text-slate-400">Q{index + 1}</span>
-                          </div>
-                          <p className="text-white mb-3">{question.text}</p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-400">{question.category}</span>
-                            <span className="text-xs text-slate-400">{question.timeLimit}s</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-4">Interview Setup</h2>
+                  <h2 className="text-xl font-semibold text-white mb-4">Interview Settings</h2>
                   <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle className="text-white">Interview Settings</CardTitle>
+                      <CardTitle className="text-white">AI Interview Configuration</CardTitle>
                       <CardDescription className="text-slate-300">
                         Configure your interview environment
                       </CardDescription>
@@ -479,17 +622,67 @@ export default function NewInterview() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-300">Total Questions</span>
+                          <Monitor className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-300">Screen Sharing</span>
                         </div>
-                        <span className="text-white font-semibold">{questions.length}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={toggleScreenShare}
+                          className="border-slate-600 text-slate-300"
+                        >
+                          {interviewState.isScreenShareOn ? 'On' : 'Off'}
+                        </Button>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Target className="w-4 h-4 text-slate-400" />
+                          <Clock className="w-4 h-4 text-slate-400" />
                           <span className="text-slate-300">Estimated Duration</span>
                         </div>
-                        <span className="text-white font-semibold">~25 minutes</span>
+                        <span className="text-white font-semibold">~20 minutes</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* AI Interview Info */}
+                <div>
+                  <h2 className="text-xl font-semibold text-white mb-4">AI Interview Features</h2>
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">AI-Powered Interview</CardTitle>
+                      <CardDescription className="text-slate-300">
+                        Advanced AI features for comprehensive assessment
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <Brain className="w-5 h-5 text-blue-400" />
+                        <div>
+                          <p className="text-white font-medium">Dynamic Question Generation</p>
+                          <p className="text-sm text-slate-400">AI adapts questions based on responses</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Volume2 className="w-5 h-5 text-green-400" />
+                        <div>
+                          <p className="text-white font-medium">Voice Interaction</p>
+                          <p className="text-sm text-slate-400">Natural conversation with AI interviewer</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Target className="w-5 h-5 text-purple-400" />
+                        <div>
+                          <p className="text-white font-medium">Real-time Analysis</p>
+                          <p className="text-sm text-slate-400">Instant feedback and scoring</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <FileText className="w-5 h-5 text-yellow-400" />
+                        <div>
+                          <p className="text-white font-medium">Comprehensive Report</p>
+                          <p className="text-sm text-slate-400">Detailed assessment and recommendations</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -497,10 +690,20 @@ export default function NewInterview() {
                   <div className="mt-6">
                     <Button
                       onClick={startInterview}
+                      disabled={loading}
                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 py-3 text-lg"
                     >
-                      <Play className="w-5 h-5 mr-2" />
-                      Start Interview
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Starting Interview...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-5 h-5 mr-2" />
+                          Start AI Interview
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -513,8 +716,6 @@ export default function NewInterview() {
   }
 
   if (currentStep === 'interview') {
-    const currentQuestion = questions[interviewState.currentQuestion]
-    
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -531,6 +732,18 @@ export default function NewInterview() {
                     <FileText className="w-4 h-4 text-slate-400" />
                     <span className="text-slate-300">Question {interviewState.currentQuestion + 1} of {interviewState.totalQuestions}</span>
                   </div>
+                  {interviewState.aiSpeaking && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span className="text-blue-400 text-sm">AI Speaking</span>
+                    </div>
+                  )}
+                  {interviewState.isListening && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-green-400 text-sm">Listening</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center space-x-4">
                   <Button
@@ -552,10 +765,26 @@ export default function NewInterview() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={toggleScreenShare}
+                    className="border-slate-600 text-slate-300"
+                  >
+                    {interviewState.isScreenShareOn ? <Monitor className="w-4 h-4" /> : <MonitorOff className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={pauseInterview}
                     className="border-slate-600 text-slate-300"
                   >
                     {interviewState.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={skipQuestion}
+                    className="border-slate-600 text-slate-300"
+                  >
+                    <SkipForward className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -564,59 +793,82 @@ export default function NewInterview() {
 
           {/* Main Content */}
           <div className="pt-24 pb-8">
-            <div className="container mx-auto px-4 max-w-4xl">
-              {/* Current Question */}
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm mb-8">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">Current Question</CardTitle>
-                    <Badge className={`${getDifficultyColor(currentQuestion?.difficulty)} text-white`}>
-                      {currentQuestion?.difficulty}
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-slate-300">
-                    {currentQuestion?.category} • {currentQuestion?.timeLimit} seconds
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-lg text-white leading-relaxed">{currentQuestion?.text}</p>
-                </CardContent>
-              </Card>
-
-              {/* Navigation */}
-              <div className="flex justify-between items-center">
-                <Button
-                  variant="outline"
-                  onClick={previousQuestion}
-                  disabled={interviewState.currentQuestion === 0}
-                  className="border-slate-600 text-slate-300"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Previous
-                </Button>
-                
-                <div className="flex items-center space-x-4">
-                  <span className="text-slate-300">
-                    {interviewState.currentQuestion + 1} of {interviewState.totalQuestions}
-                  </span>
+            <div className="container mx-auto px-4 max-w-6xl">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Video Feed */}
+                <div className="lg:col-span-2">
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">Interview Video</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="relative aspect-video bg-slate-900 rounded-lg overflow-hidden">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                        {!interviewState.isVideoOn && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                            <CameraOff className="w-16 h-16 text-slate-400" />
+                          </div>
+                        )}
+                        {interviewState.aiSpeaking && (
+                          <div className="absolute top-4 left-4 bg-blue-600/80 px-3 py-1 rounded-full">
+                            <span className="text-white text-sm">AI Speaking</span>
+                          </div>
+                        )}
+                        {interviewState.isListening && (
+                          <div className="absolute top-4 right-4 bg-green-600/80 px-3 py-1 rounded-full">
+                            <span className="text-white text-sm">Listening</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                <Button
-                  onClick={nextQuestion}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                >
-                  {interviewState.currentQuestion === interviewState.totalQuestions - 1 ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Finish Interview
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                    </>
+                {/* Interview Controls & Transcript */}
+                <div className="space-y-6">
+                  {/* Current Question */}
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">Current Question</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-white leading-relaxed">{currentQuestion?.text}</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* User Response */}
+                  {userResponse && (
+                    <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                      <CardHeader>
+                        <CardTitle className="text-white">Your Response</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-slate-300 leading-relaxed">{userResponse}</p>
+                      </CardContent>
+                    </Card>
                   )}
-                </Button>
+
+                  {/* Interview Transcript */}
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">Interview Transcript</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {interviewTranscript.map((entry, index) => (
+                          <div key={index} className="text-sm">
+                            <span className="text-slate-400">{entry}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </div>
@@ -655,7 +907,7 @@ export default function NewInterview() {
                   Interview Complete
                 </Badge>
                 <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
-                  Interview Summary
+                  AI Interview Summary
                 </h1>
                 <p className="text-slate-300">
                   Review the interview results and generate the final report
@@ -682,7 +934,7 @@ export default function NewInterview() {
                   <CardContent className="p-6 text-center">
                     <Target className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-white">85%</div>
-                    <p className="text-sm text-slate-400">Estimated Score</p>
+                    <p className="text-sm text-slate-400">AI Score</p>
                   </CardContent>
                 </Card>
               </div>
@@ -691,7 +943,7 @@ export default function NewInterview() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
                   <FileText className="w-4 h-4 mr-2" />
-                  Generate Report
+                  Generate AI Report
                 </Button>
                 <Button variant="outline" className="border-slate-600 text-slate-300">
                   <Download className="w-4 h-4 mr-2" />

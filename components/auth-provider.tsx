@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
 
 interface User {
   id: string
@@ -71,44 +72,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true)
       
-      // For now, we'll simulate the OAuth flow with a prompt
-      // In production, this would redirect to the actual OAuth provider
-      const email = prompt(`Enter your ${provider} email for testing:`)
-      const name = prompt(`Enter your name for testing:`)
+      // Redirect to OAuth provider
+      const redirectUrl = `${window.location.origin}/auth/callback`
+      const oauthUrl = provider === 'google' 
+        ? `https://accounts.google.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrl}&response_type=code&scope=email profile`
+        : `https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&redirect_uri=${redirectUrl}&scope=user:email`
       
-      if (!email || !name) {
-        setLoading(false)
-        return
-      }
-
-      // Call our auth API to create/authenticate user
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'signin',
-          provider,
-          email,
-          name
-        })
-      })
-
-      const data = await response.json()
+      // Store provider in sessionStorage for callback handling
+      sessionStorage.setItem('oauth_provider', provider)
       
-      if (data.success) {
-        setUser(data.user)
-        setSubscription(data.subscription)
-        // Redirect to dashboard after successful sign-in
-        window.location.href = '/dashboard'
-      } else {
-        alert('Sign-in failed: ' + (data.error || 'Unknown error'))
-      }
+      // Redirect to OAuth provider
+      window.location.href = oauthUrl
+      
     } catch (error) {
       console.error('Sign-in error:', error)
-      alert('Sign-in failed. Please try again.')
-    } finally {
+      toast.error('Sign-in failed. Please try again.')
       setLoading(false)
     }
   }
@@ -129,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(null)
       setSubscription(null)
+      window.location.href = '/'
     } catch (error) {
       console.error('Sign-out error:', error)
     } finally {
