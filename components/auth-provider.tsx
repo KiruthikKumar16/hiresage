@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Redirect to OAuth provider
       const redirectUrl = `${window.location.origin}/auth/callback`
       const oauthUrl = provider === 'google' 
-        ? `https://accounts.google.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrl}&response_type=code&scope=email profile`
-        : `https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID}&redirect_uri=${redirectUrl}&scope=user:email`
+        ? `https://accounts.google.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID}&redirect_uri=${redirectUrl}&response_type=code&scope=email profile`
+        : `https://github.com/login/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_GITHUB_ID || process.env.GITHUB_ID}&redirect_uri=${redirectUrl}&scope=user:email`
       
       // Store provider in sessionStorage for callback handling
       sessionStorage.setItem('oauth_provider', provider)
