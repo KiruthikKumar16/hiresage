@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService, authService } from '@/lib/supabase-db'
+import { sessionStore } from '@/lib/session-store'
 
 export async function POST(request: NextRequest) {
   try {
@@ -118,9 +119,8 @@ export async function POST(request: NextRequest) {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000) 
     }
     
-    // Store session (in production, use Redis or database)
-    const sessions = new Map()
-    sessions.set(sessionId, session)
+    // Store session in global session store
+    sessionStore.set(sessionId, session)
 
     const response = NextResponse.json({ 
       success: true, 

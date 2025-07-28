@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase-db'
-
-// Simple session storage (in production, use Redis or database)
-const sessions = new Map()
+import { sessionStore } from '@/lib/session-store'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,13 +9,18 @@ export async function GET(request: NextRequest) {
   if (action === 'session') {
     const sessionId = request.cookies.get('session-id')?.value
     
-    if (sessionId && sessions.has(sessionId)) {
-      const session = sessions.get(sessionId)
-      return NextResponse.json({
-        user: session.user,
-        subscription: session.subscription,
-        expires: session.expires
-      })
+    if (sessionId) {
+      const session = sessionStore.get(sessionId)
+      if (session && session.expires > new Date()) {
+        return NextResponse.json({
+          user: session.user,
+          subscription: session.subscription,
+          expires: session.expires
+        })
+      } else if (session && session.expires <= new Date()) {
+        // Session expired, clean it up
+        sessionStore.delete(sessionId)
+      }
     }
     
     return NextResponse.json({ user: null })
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
           subscription,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
         }
-        sessions.set(sessionId, session)
+        sessionStore.set(sessionId, session)
 
         const response = NextResponse.json({ 
           success: true,
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
       const sessionId = request.cookies.get('session-id')?.value
       
       if (sessionId) {
-        sessions.delete(sessionId)
+        sessionStore.delete(sessionId)
       }
 
       const response = NextResponse.json({ success: true })
