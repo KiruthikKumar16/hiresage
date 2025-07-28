@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { code, provider, redirect_uri } = body
 
+    console.log('OAuth callback received:', { code: code?.substring(0, 10) + '...', provider, redirect_uri })
+
     if (!code || !provider) {
+      console.error('Missing parameters:', { code: !!code, provider })
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
     }
 
