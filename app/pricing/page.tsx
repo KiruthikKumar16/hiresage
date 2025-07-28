@@ -3,11 +3,6 @@ import { Brain } from 'lucide-react'
 import Image from 'next/image'
 
 export default function PricingPage() {
-  const handlePlanSelection = (plan: string, type: 'individual' | 'organization') => {
-    // Redirect to sign-in page for OAuth authentication
-    window.location.href = '/auth/signin'
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
       {/* Header */}
@@ -46,7 +41,7 @@ export default function PricingPage() {
       </header>
 
       <div className="container mx-auto px-4 py-12">
-        <Pricing onSelectPlan={handlePlanSelection} />
+        <Pricing />
       </div>
     </div>
   )
