@@ -182,122 +182,125 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         </p>
       </div>
 
-      {/* User Type Toggle */}
-      <div className="relative z-10 flex justify-center mb-16">
-        <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as 'individual' | 'organization')} className="w-full max-w-lg">
-          <TabsList className="grid w-full grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1">
-            <TabsTrigger value="individual" className={clsx(
-              'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
-              selectedType === 'individual' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
-            )}>
-              <User className="h-5 w-5" />
-              Individual
-            </TabsTrigger>
-            <TabsTrigger value="organization" className={clsx(
-              'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
-              selectedType === 'organization' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
-            )}>
-              <Building2 className="h-5 w-5" />
-              Organization
-            </TabsTrigger>
-          </TabsList>
+      {/* Pricing Section with Tabs */}
+      <div className="relative z-10">
+        <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as 'individual' | 'organization')} className="w-full">
+          {/* User Type Toggle */}
+          <div className="flex justify-center mb-16">
+            <TabsList className="grid w-full max-w-lg grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1">
+              <TabsTrigger value="individual" className={clsx(
+                'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
+                selectedType === 'individual' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
+              )}>
+                <User className="h-5 w-5" />
+                Individual
+              </TabsTrigger>
+              <TabsTrigger value="organization" className={clsx(
+                'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
+                selectedType === 'organization' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
+              )}>
+                <Building2 className="h-5 w-5" />
+                Organization
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Pricing Cards */}
+          <TabsContent value="individual" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {individualPlans.map((plan, index) => (
+                <Card
+                  key={index}
+                  className={clsx(
+                    'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
+                    plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
+                  )}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                      <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
+                        <Star className="h-4 w-4 mr-2" /> Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader className="text-center pb-6 pt-8">
+                    <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
+                    <div className="flex items-baseline justify-center gap-2 mb-4">
+                      <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                      <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
+                    </div>
+                    <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
+                    <ul className="space-y-4 flex-1">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-start gap-4">
+                          <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
+                      variant={plan.buttonVariant}
+                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
+                    >
+                      {plan.buttonText}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="organization" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {organizationPlans.map((plan, index) => (
+                <Card
+                  key={index}
+                  className={clsx(
+                    'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
+                    plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
+                  )}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                      <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
+                        <Star className="h-4 w-4 mr-2" /> Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader className="text-center pb-6 pt-8">
+                    <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
+                    <div className="flex items-baseline justify-center gap-2 mb-4">
+                      <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                      <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
+                    </div>
+                    <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
+                    <ul className="space-y-4 flex-1">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-start gap-4">
+                          <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
+                      variant={plan.buttonVariant}
+                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
+                    >
+                      {plan.buttonText}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
-
-      {/* Pricing Cards */}
-      <TabsContent value="individual" className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {individualPlans.map((plan, index) => (
-            <Card
-              key={index}
-              className={clsx(
-                'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
-                plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
-              )}
-            >
-              {plan.popular && (
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
-                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
-                    <Star className="h-4 w-4 mr-2" /> Most Popular
-                  </span>
-                </div>
-              )}
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
-                <div className="flex items-baseline justify-center gap-2 mb-4">
-                  <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                  <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
-                </div>
-                <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
-                <ul className="space-y-4 flex-1">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-4">
-                      <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
-                  variant={plan.buttonVariant}
-                  onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
-                >
-                  {plan.buttonText}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="organization" className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {organizationPlans.map((plan, index) => (
-            <Card
-              key={index}
-              className={clsx(
-                'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
-                plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
-              )}
-            >
-              {plan.popular && (
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
-                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
-                    <Star className="h-4 w-4 mr-2" /> Most Popular
-                  </span>
-                </div>
-              )}
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
-                <div className="flex items-baseline justify-center gap-2 mb-4">
-                  <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                  <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
-                </div>
-                <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
-                <ul className="space-y-4 flex-1">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-4">
-                      <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
-                  variant={plan.buttonVariant}
-                  onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
-                >
-                  {plan.buttonText}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </TabsContent>
 
       {/* Features Section */}
       <div className="relative z-10 mt-20">
