@@ -113,35 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-      // Simulate OAuth sign-in
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'signin',
-          provider,
-          email: mockUser.email,
-          name: mockUser.name
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        setSubscription(data.subscription)
-      } else {
-        throw new Error('Sign-in failed')
-      }
-    } catch (error) {
-      console.error('Sign-in error:', error)
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const signOut = async () => {
     try {
       setLoading(true)
