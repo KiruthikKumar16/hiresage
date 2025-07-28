@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -71,7 +71,7 @@ const plans = {
   }
 }
 
-export default function PurchasePage() {
+function PurchasePageContent() {
   const searchParams = useSearchParams()
   const planId = searchParams.get('plan') || 'free-trial'
   const type = searchParams.get('type') || 'individual'
@@ -488,5 +488,20 @@ export default function PurchasePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PurchasePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading purchase page...</p>
+        </div>
+      </div>
+    }>
+      <PurchasePageContent />
+    </Suspense>
   )
 } 
