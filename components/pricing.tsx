@@ -157,204 +157,161 @@ export function Pricing({ onSelectPlan }: PricingProps) {
   ]
 
   return (
-    <div className="relative py-16 px-2 md:px-0 bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 overflow-hidden rounded-3xl shadow-2xl">
+    <div className="relative py-20 px-4 md:px-8 bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 overflow-hidden rounded-3xl shadow-2xl">
       {/* Floating background shapes */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-cyan-700/20 rounded-full blur-3xl z-0" />
       <div className="absolute -bottom-32 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl z-0" />
       <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-blue-400/10 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2 z-0" />
 
       {/* Header */}
-      <div className="relative z-10 text-center mb-12">
-        <div className="flex justify-center mb-6">
+      <div className="relative z-10 text-center mb-16">
+        <div className="flex justify-center mb-8">
           <Image
             src="/JoCruit_Logo/logo_light.png"
             alt="JoCruit AI"
-            width={80}
-            height={80}
-            className="w-20 h-20 drop-shadow-xl"
+            width={100}
+            height={100}
+            className="w-24 h-24 drop-shadow-xl"
           />
         </div>
-        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight drop-shadow-lg">Simple, Transparent Pricing</h2>
-        <p className="text-xl text-slate-200 max-w-2xl mx-auto">Pay only for what you use. Scale up or down as needed.</p>
+        <h2 className="text-5xl md:text-6xl font-extrabold text-white mb-6 tracking-tight drop-shadow-lg leading-tight">
+          Simple, Transparent Pricing
+        </h2>
+        <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto leading-relaxed">
+          Pay only for what you use. Scale up or down as needed with our flexible pricing model.
+        </p>
       </div>
 
       {/* User Type Toggle */}
-      <div className="relative z-10 flex justify-center mb-10">
-        <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as 'individual' | 'organization')} className="w-full max-w-md">
-          <TabsList className="grid w-full grid-cols-2 rounded-full bg-slate-800/80 border border-slate-700 shadow-lg">
+      <div className="relative z-10 flex justify-center mb-16">
+        <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as 'individual' | 'organization')} className="w-full max-w-lg">
+          <TabsList className="grid w-full grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1">
             <TabsTrigger value="individual" className={clsx(
-              'flex items-center gap-2 rounded-full py-2 px-6 font-semibold transition',
-              selectedType === 'individual' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700/40'
+              'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
+              selectedType === 'individual' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
             )}>
-              <User className="h-4 w-4" />
+              <User className="h-5 w-5" />
               Individual
             </TabsTrigger>
             <TabsTrigger value="organization" className={clsx(
-              'flex items-center gap-2 rounded-full py-2 px-6 font-semibold transition',
-              selectedType === 'organization' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-700/40'
+              'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
+              selectedType === 'organization' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
             )}>
-              <Building2 className="h-4 w-4" />
+              <Building2 className="h-5 w-5" />
               Organization
             </TabsTrigger>
           </TabsList>
-
-          {/* Pricing Cards */}
-          <TabsContent value="individual" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {individualPlans.map((plan, index) => (
-                <Card
-                  key={index}
-                  className={clsx(
-                    'relative bg-slate-800/80 border-2 border-slate-700 rounded-2xl shadow-xl transition-all duration-300 group hover:scale-105 hover:border-cyan-400/80',
-                    plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
-                  )}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
-                      <span className="inline-flex items-center px-4 py-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-xs shadow-lg border-2 border-white/10">
-                        <Star className="h-3 w-3 mr-1" /> Most Popular
-                      </span>
-                    </div>
-                  )}
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-3xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
-                    <div className="flex items-baseline justify-center gap-1 mb-2">
-                      <span className="text-5xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                      <span className="text-base text-slate-300 font-medium">/{plan.period}</span>
-                    </div>
-                    <p className="text-slate-400 text-base mb-2">{plan.description}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-0">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center gap-3">
-                          <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
-                          <span className="text-base text-slate-200">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg font-bold py-3 rounded-xl shadow-md"
-                      variant={plan.buttonVariant}
-                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
-                    >
-                      {plan.buttonText}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="organization" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {organizationPlans.map((plan, index) => (
-                <Card
-                  key={index}
-                  className={clsx(
-                    'relative bg-slate-800/80 border-2 border-slate-700 rounded-2xl shadow-xl transition-all duration-300 group hover:scale-105 hover:border-cyan-400/80',
-                    plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
-                  )}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-20">
-                      <span className="inline-flex items-center px-4 py-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-xs shadow-lg border-2 border-white/10">
-                        <Star className="h-3 w-3 mr-1" /> Most Popular
-                      </span>
-                    </div>
-                  )}
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-3xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
-                    <div className="flex items-baseline justify-center gap-1 mb-2">
-                      <span className="text-5xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                      <span className="text-base text-slate-300 font-medium">/{plan.period}</span>
-                    </div>
-                    <p className="text-slate-400 text-base mb-2">{plan.description}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-0">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center gap-3">
-                          <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
-                          <span className="text-base text-slate-200">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg font-bold py-3 rounded-xl shadow-md"
-                      variant={plan.buttonVariant}
-                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
-                    >
-                      {plan.buttonText}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
 
-      {/* Features Section */}
-      <div className="relative z-10 mt-16">
-        <h2 className="text-3xl font-bold text-center mb-8 text-white drop-shadow">Powerful Features for Every Plan</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
-            <Card key={index} className="text-center bg-slate-800/80 border border-slate-700 rounded-xl shadow-md">
-              <CardContent className="pt-6">
-                <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full shadow-lg">
-                    <feature.icon className="h-6 w-6 text-white" />
-                  </div>
+      {/* Pricing Cards */}
+      <TabsContent value="individual" className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {individualPlans.map((plan, index) => (
+            <Card
+              key={index}
+              className={clsx(
+                'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
+                plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
+              )}
+            >
+              {plan.popular && (
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
+                    <Star className="h-4 w-4 mr-2" /> Most Popular
+                  </span>
                 </div>
-                <h3 className="font-semibold mb-2 text-white">{feature.title}</h3>
-                <p className="text-sm text-slate-300">{feature.description}</p>
+              )}
+              <CardHeader className="text-center pb-6 pt-8">
+                <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
+                <div className="flex items-baseline justify-center gap-2 mb-4">
+                  <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                  <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
+                </div>
+                <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
+                <ul className="space-y-4 flex-1">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-start gap-4">
+                      <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
+                  variant={plan.buttonVariant}
+                  onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
+                >
+                  {plan.buttonText}
+                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
-      </div>
+      </TabsContent>
 
-      {/* FAQ Section */}
-      <div className="relative z-10 mt-16">
-        <h2 className="text-3xl font-bold text-center mb-8 text-white drop-shadow">Frequently Asked Questions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          <Card className="bg-slate-800/80 border border-slate-700 rounded-xl shadow-md">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-white">How does the video interview work?</h3>
-              <p className="text-sm text-slate-300">
-                Our AI-powered video interviews use advanced computer vision and speech recognition 
-                to analyze your responses in real-time, providing instant feedback on your performance.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-800/80 border border-slate-700 rounded-xl shadow-md">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-white">What kind of cheating detection do you use?</h3>
-              <p className="text-sm text-slate-300">
-                We use multiple layers of detection including face recognition, screen sharing detection, 
-                background noise analysis, and unusual movement patterns to ensure interview integrity.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-800/80 border border-slate-700 rounded-xl shadow-md">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-white">Can I customize interview questions?</h3>
-              <p className="text-sm text-slate-300">
-                Yes! Organizations can create custom interview scenarios and question sets 
-                tailored to their specific roles and requirements.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-800/80 border border-slate-700 rounded-xl shadow-md">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-white">Is my data secure?</h3>
-              <p className="text-sm text-slate-300">
-                Absolutely. We use enterprise-grade encryption and follow strict data protection 
-                protocols to ensure your interview data remains confidential and secure.
-              </p>
-            </CardContent>
-          </Card>
+      <TabsContent value="organization" className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {organizationPlans.map((plan, index) => (
+            <Card
+              key={index}
+              className={clsx(
+                'relative bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 group hover:scale-105 hover:border-cyan-400/80 min-h-[600px] flex flex-col',
+                plan.popular && 'border-4 border-cyan-400/80 shadow-2xl scale-105 z-10 bg-gradient-to-br from-blue-800/90 via-cyan-800/90 to-slate-900/90'
+              )}
+            >
+              {plan.popular && (
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                  <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
+                    <Star className="h-4 w-4 mr-2" /> Most Popular
+                  </span>
+                </div>
+              )}
+              <CardHeader className="text-center pb-6 pt-8">
+                <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{plan.name}</CardTitle>
+                <div className="flex items-baseline justify-center gap-2 mb-4">
+                  <span className="text-6xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                  <span className="text-xl text-slate-300 font-medium">/{plan.period}</span>
+                </div>
+                <p className="text-slate-400 text-lg mb-4 leading-relaxed">{plan.description}</p>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-0 flex-1 flex flex-col">
+                <ul className="space-y-4 flex-1">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-start gap-4">
+                      <Check className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
+                  variant={plan.buttonVariant}
+                  onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
+                >
+                  {plan.buttonText}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </TabsContent>
+
+      {/* Features Section */}
+      <div className="relative z-10 mt-20">
+        <h2 className="text-4xl font-bold text-center mb-12 text-white drop-shadow">Powerful Features for Every Plan</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          {features.map((feature, index) => (
+            <div key={index} className="text-center group">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                <feature.icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
+              <p className="text-slate-300 text-lg leading-relaxed">{feature.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
