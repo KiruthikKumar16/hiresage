@@ -30,7 +30,6 @@ interface AuthContextType {
   user: User | null
   subscription: Subscription | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
   signInWithProvider: (provider: 'google' | 'github') => Promise<void>
   signOut: () => Promise<void>
 }
@@ -38,107 +37,72 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [user, setUser] = useState(null)
+  const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Fetch session on mount
+    async function checkSession() {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/auth?action=session')
+        if (res.ok) {
+          const { user, subscription } = await res.json()
+          setUser(user)
+          setSubscription(subscription)
+        } else {
+          setUser(null)
+          setSubscription(null)
+        }
+      } catch {
+        setUser(null)
+        setSubscription(null)
+      }
+      setLoading(false)
+    }
     checkSession()
   }, [])
 
-  const checkSession = async () => {
+  async function signInWithProvider(provider) {
+    // Implement OAuth popup/redirect logic here
+    // For demo: call /api/auth with provider
+    setLoading(true)
     try {
-      const response = await fetch('/api/auth?action=session')
-      const data = await response.json()
-      
-      if (data.user) {
-        setUser(data.user)
-        setSubscription(data.subscription || null)
+      // In real app, use OAuth popup/redirect
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signin', provider })
+      })
+      if (res.ok) {
+        const { user, subscription } = await res.json()
+        setUser(user)
+        setSubscription(subscription)
+      } else {
+        setUser(null)
+        setSubscription(null)
       }
-    } catch (error) {
-      console.error('Session check failed:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const response = await fetch('/api/auth?action=signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.user) {
-        setUser(data.user)
-        setSubscription(data.subscription || null)
-      } else {
-        throw new Error(data.error || 'Sign in failed')
-      }
-    } catch (error) {
-      console.error('Sign in failed:', error)
-      throw error
-    }
-  }
-
-  const signInWithProvider = async (provider: 'google' | 'github') => {
-    try {
-      // For demo purposes, we'll simulate OAuth login
-      // In a real app, this would redirect to OAuth provider
-      const response = await fetch('/api/auth?action=signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          provider,
-          email: `demo@${provider}.com` // Demo email for testing
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.user) {
-        setUser(data.user)
-        setSubscription(data.subscription || null)
-      } else {
-        throw new Error(data.error || 'Social sign in failed')
-      }
-    } catch (error) {
-      console.error('Social sign in failed:', error)
-      throw error
-    }
-  }
-
-  const signOut = async () => {
-    try {
-      await fetch('/api/auth?action=signout', {
-        method: 'POST',
-      })
-      setUser(null)
-      setSubscription(null)
-    } catch (error) {
-      console.error('Sign out failed:', error)
-      throw error
-    }
+  async function signOut() {
+    setLoading(true)
+    await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signout' }) })
+    setUser(null)
+    setSubscription(null)
+    setLoading(false)
   }
 
   return (
-    <AuthContext.Provider value={{ user, subscription, loading, signIn, signInWithProvider, signOut }}>
+    <AuthContext.Provider value={{ user, subscription, loading, signInWithProvider, signOut }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
+  return useContext(AuthContext)
 } 

@@ -1,259 +1,34 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Mail, Lock, Github, Menu, X, Star, CheckCircle } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useAuth } from "@/components/auth-provider"
-import { toast } from "sonner"
+import { useAuth } from '@/components/auth-provider'
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { signIn, signInWithProvider } = useAuth()
-
-  const handleCredentialsSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      await signIn(email, password)
-      toast.success("Successfully signed in!")
-    } catch (error) {
-      toast.error("Failed to sign in. Please check your credentials.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSocialSignIn = async (provider: 'google' | 'github') => {
-    setIsLoading(true)
-    try {
-      await signInWithProvider(provider)
-      toast.success(`Successfully signed in with ${provider}!`)
-    } catch (error) {
-      toast.error(`Failed to sign in with ${provider}. Please try again.`)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { signInWithProvider } = useAuth()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="relative">
-                <Image
-                  src="/JoCruit_Logo/logo_full_dark.png"
-                  alt="JoCruit AI"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto"
-                />
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  JoCruit AI X
-                </h1>
-                <p className="text-xs text-slate-400">Smarter Hiring Starts Here</p>
-              </div>
-            </Link>
-
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="text-slate-300 hover:text-white transition-colors">
-                Home
-              </Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
-                Pricing
-              </Link>
-              <Link href="/purchase" className="text-slate-300 hover:text-white transition-colors">
-                Get Started
-              </Link>
-            </div>
-
-            <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="md:hidden mt-4 pb-4 border-t border-slate-700">
-              <div className="flex flex-col space-y-4 pt-4">
-                <Link href="/" className="text-slate-300 hover:text-white transition-colors">
-                  Home
-                </Link>
-                <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">
-                  Pricing
-                </Link>
-                <Link href="/purchase" className="text-slate-300 hover:text-white transition-colors">
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          )}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      <div className="w-full max-w-md p-8 bg-slate-900/80 rounded-xl shadow-xl border border-slate-700">
+        <div className="flex flex-col items-center mb-8">
+          <img src="/JoCruit_Logo/logo_full_dark.png" alt="JoCruit AI" className="h-12 mb-2" />
+          <h1 className="text-2xl font-bold mb-2">Sign in to JoCruit</h1>
         </div>
-      </nav>
-
-      {/* Main Content */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 animate-pulse"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <Badge className="mb-4 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 text-cyan-300 border-cyan-500/30">
-                Welcome Back
-              </Badge>
-              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
-                Sign In to JoCruit
-              </h1>
-              <p className="text-slate-300">
-                Access your AI-powered interview dashboard
-              </p>
-            </div>
-
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardHeader className="text-center">
-                <CardTitle className="text-white">Sign In</CardTitle>
-                <CardDescription className="text-slate-300">
-                  Enter your credentials to continue
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleCredentialsSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-300">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-slate-300">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-slate-600" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-slate-800 px-2 text-slate-400">Or continue with</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSocialSignIn('google')}
-                    disabled={isLoading}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50"
-                  >
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    Google
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSocialSignIn('github')}
-                    disabled={isLoading}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50"
-                  >
-                    <Github className="mr-2 h-4 w-4" />
-                    GitHub
-                  </Button>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-sm text-slate-400">
-                    Don't have an account?{" "}
-                    <Link href="/purchase" className="text-blue-400 hover:text-blue-300 transition-colors">
-                      Get Started
-                    </Link>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Features Preview */}
-            <div className="mt-12 text-center">
-              <h3 className="text-lg font-semibold text-white mb-4">Why Choose JoCruit?</h3>
-              <div className="grid grid-cols-1 gap-4 text-sm text-slate-300">
-                <div className="flex items-center justify-center space-x-2">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span>AI-Powered Interviews</span>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>Real-time Analysis</span>
-                </div>
-                <div className="flex items-center justify-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span>Detailed Reports</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex flex-col gap-4">
+          <button
+            onClick={() => signInWithProvider('google')}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded bg-white text-slate-900 font-semibold hover:bg-slate-100 border border-slate-300 transition"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.68 2.7 30.74 0 24 0 14.82 0 6.73 5.48 2.69 13.44l7.98 6.2C12.13 13.13 17.62 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.42-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.6C43.93 37.13 46.1 31.3 46.1 24.55z"/><path fill="#FBBC05" d="M10.67 28.09c-1.13-3.36-1.13-6.97 0-10.33l-7.98-6.2C.99 15.1 0 19.39 0 24c0 4.61.99 8.9 2.69 12.44l7.98-6.2z"/><path fill="#EA4335" d="M24 48c6.74 0 12.42-2.23 16.56-6.07l-7.19-5.6c-2.01 1.35-4.6 2.15-7.37 2.15-6.38 0-11.87-3.63-14.33-8.89l-7.98 6.2C6.73 42.52 14.82 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></g></svg>
+            Sign in with Google
+          </button>
+          <button
+            onClick={() => signInWithProvider('github')}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded bg-slate-800 text-white font-semibold hover:bg-slate-700 border border-slate-700 transition"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.36-3.37-1.36-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05A9.38 9.38 0 0 1 12 7.43c.85.004 1.71.12 2.51.35 1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>
+            Sign in with GitHub
+          </button>
         </div>
-
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full animate-bounce"></div>
-        <div className="absolute bottom-20 right-10 w-16 h-16 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full animate-pulse"></div>
-      </section>
+      </div>
     </div>
   )
 } 

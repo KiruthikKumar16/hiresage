@@ -47,126 +47,45 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const action = searchParams.get('action')
-
-  if (action === 'signin') {
+  try {
     const body = await request.json()
-    const { email, password, provider } = body
+    const { action, provider, email, name, avatar } = body
 
-    // Handle OAuth providers
-    if (provider === 'google' || provider === 'github') {
-      try {
-        // For OAuth, we'll create a user if they don't exist
-        let user = await userService.getUserByEmail(email || `${provider}@example.com`)
-        
+    if (action === 'signin') {
+      if (provider === 'google' || provider === 'github') {
+        // Try to find user by email
+        let user = await userService.getUserByEmail(email)
         if (!user) {
-          // Create user for OAuth login
+          // Create user if not exists
           user = await userService.createUser({
-            name: `${provider} User`,
-            email: email || `${provider}@example.com`,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            name: name || '',
+            email,
+            avatar: avatar || '',
+            provider
           })
-
-          // Create a free trial subscription for OAuth users
-          await authService.createAccount({
-            name: `${provider} User`,
-            email: email || `${provider}@example.com`
-          }, 'free-trial')
         }
-
-        // Get subscription
-        const subscription = await authService.getActiveSubscription(user.id)
-
-        // Create session
-        const sessionId = Math.random().toString(36).substring(7)
-        const session = {
-          user,
-          subscription,
-          expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        }
-
-        sessions.set(sessionId, session)
-
-        const response = NextResponse.json({ 
-          user,
-          subscription,
-          sessionId 
-        })
-
-        response.cookies.set('session-id', sessionId, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 // 24 hours
-        })
-
-        return response
-      } catch (error) {
-        console.error('OAuth authentication error:', error)
-        return NextResponse.json({ error: 'OAuth authentication failed' }, { status: 500 })
+        // Create/fetch subscription
+        let subscription = await authService.getOrCreateFreeTrialSubscription(user.id)
+        // Return session info
+        return NextResponse.json({ user, subscription })
       }
+      return NextResponse.json({ error: 'Only Google and GitHub sign-in supported' }, { status: 400 })
     }
-
-    // Handle credentials
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Missing credentials' }, { status: 400 })
-    }
-
-    try {
-      // Authenticate user with database
-      const authResult = await authService.authenticateUser(email, password)
+    if (action === 'signout') {
+      const sessionId = request.cookies.get('session-id')?.value
       
-      if (!authResult) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      if (sessionId) {
+        sessions.delete(sessionId)
       }
 
-      const { user, subscription } = authResult
-
-      // Create session
-      const sessionId = Math.random().toString(36).substring(7)
-      const session = {
-        user,
-        subscription,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-      }
-
-      sessions.set(sessionId, session)
-
-      const response = NextResponse.json({ 
-        user,
-        subscription,
-        sessionId 
-      })
-
-      // Set session cookie
-      response.cookies.set('session-id', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
-      })
-
+      const response = NextResponse.json({ success: true })
+      response.cookies.delete('session-id')
+      
       return response
-    } catch (error) {
-      console.error('Authentication error:', error)
-      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    console.error('Auth error:', error)
+    return NextResponse.json({ error: 'Auth failed' }, { status: 500 })
   }
-
-  if (action === 'signout') {
-    const sessionId = request.cookies.get('session-id')?.value
-    
-    if (sessionId) {
-      sessions.delete(sessionId)
-    }
-
-    const response = NextResponse.json({ success: true })
-    response.cookies.delete('session-id')
-    
-    return response
-  }
-
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 } 
