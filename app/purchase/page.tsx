@@ -30,7 +30,7 @@ const plans = {
     name: "Basic",
     price: 29,
     interviews: 10,
-    features: ["10 interviews per month", "Advanced emotion analysis", "Enhanced cheating detection", "Priority email support", "Detailed analytics", "Interview feedback", "Practice mode"],
+    features: ["Advanced emotion analysis", "Enhanced cheating detection", "Priority email support", "Detailed analytics", "Interview feedback", "Practice mode"],
     popular: true,
     trial: false,
     description: "Great for job seekers and professionals",
@@ -41,7 +41,7 @@ const plans = {
     name: "Premium",
     price: 79,
     interviews: 500,
-    features: ["Unlimited interviews", "AI-powered coaching", "Real-time feedback", "Video recording", "Advanced analytics", "Priority support", "Custom interview scenarios", "Performance tracking"],
+    features: ["AI-powered coaching", "Real-time feedback", "Video recording", "Advanced analytics", "Priority support", "Custom interview scenarios", "Performance tracking"],
     popular: false,
     trial: false,
     description: "For serious career development",
@@ -52,7 +52,7 @@ const plans = {
     name: "Starter",
     price: 199,
     interviews: 10,
-    features: ["Up to 10 users", "Basic video interviews", "Standard emotion analysis", "Cheating detection", "Email support", "Basic reporting", "Team dashboard"],
+    features: ["Basic video interviews", "Standard emotion analysis", "Cheating detection", "Email support", "Basic reporting", "Team dashboard"],
     popular: false,
     trial: false,
     description: "Perfect for small teams and startups",
@@ -63,7 +63,7 @@ const plans = {
     name: "Professional",
     price: 499,
     interviews: 50,
-    features: ["Up to 50 users", "Advanced video interviews", "Enhanced emotion analysis", "Advanced cheating detection", "Priority support", "Advanced analytics", "Custom branding", "API access", "Bulk candidate management"],
+    features: ["Advanced video interviews", "Enhanced emotion analysis", "Advanced cheating detection", "Priority support", "Advanced analytics", "Custom branding", "API access", "Bulk candidate management"],
     popular: true,
     trial: false,
     description: "For growing companies and HR teams",
@@ -236,11 +236,11 @@ function PurchasePageContent() {
                     {/* Plan Features */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-white">Plan Features</h3>
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
                         {selectedPlan.features.map((feature, index) => (
                           <div key={index} className="flex items-start gap-3">
                             <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                            <span className="text-slate-200">{feature}</span>
+                            <span className="text-slate-200 text-sm">{feature}</span>
                           </div>
                         ))}
                       </div>
