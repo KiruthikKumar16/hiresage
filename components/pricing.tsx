@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Check, Star, Building2, User, Zap, Shield, Brain, Video } from 'lucide-react'
 import Image from "next/image"
+import Link from "next/link"
 import clsx from 'clsx'
 
 interface PricingProps {
@@ -31,7 +32,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: false,
       buttonText: 'Get Started Free',
-      buttonVariant: 'outline' as const
+      buttonVariant: 'outline' as const,
+      href: '/auth/signin'
     },
     {
       name: 'Basic',
@@ -49,7 +51,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: true,
       buttonText: 'Start Basic Plan',
-      buttonVariant: 'default' as const
+      buttonVariant: 'default' as const,
+      href: '/purchase?plan=basic&type=individual'
     },
     {
       name: 'Premium',
@@ -68,7 +71,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: false,
       buttonText: 'Start Premium Plan',
-      buttonVariant: 'default' as const
+      buttonVariant: 'default' as const,
+      href: '/purchase?plan=premium&type=individual'
     }
   ]
 
@@ -89,7 +93,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: false,
       buttonText: 'Start Starter Plan',
-      buttonVariant: 'outline' as const
+      buttonVariant: 'outline' as const,
+      href: '/purchase?plan=starter&type=organization'
     },
     {
       name: 'Professional',
@@ -109,7 +114,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: true,
       buttonText: 'Start Professional Plan',
-      buttonVariant: 'default' as const
+      buttonVariant: 'default' as const,
+      href: '/purchase?plan=professional&type=organization'
     },
     {
       name: 'Enterprise',
@@ -129,7 +135,8 @@ export function Pricing({ onSelectPlan }: PricingProps) {
       ],
       popular: false,
       buttonText: 'Contact Sales',
-      buttonVariant: 'default' as const
+      buttonVariant: 'default' as const,
+      href: '/contact'
     }
   ]
 
@@ -187,22 +194,34 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         <Tabs value={selectedType} onValueChange={(value) => setSelectedType(value as 'individual' | 'organization')} className="w-full">
           {/* User Type Toggle */}
           <div className="flex justify-center mb-16">
-            <TabsList className="grid w-full max-w-lg grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1">
-              <TabsTrigger value="individual" className={clsx(
-                'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
-                selectedType === 'individual' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
-              )}>
-                <User className="h-5 w-5" />
-                Individual
-              </TabsTrigger>
-              <TabsTrigger value="organization" className={clsx(
-                'flex items-center gap-3 rounded-full py-4 px-8 font-bold text-lg transition-all duration-300',
-                selectedType === 'organization' ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
-              )}>
-                <Building2 className="h-5 w-5" />
-                Organization
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full max-w-md">
+              <TabsList className="grid w-full grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1 h-16">
+                <TabsTrigger 
+                  value="individual" 
+                  className={clsx(
+                    'flex items-center gap-2 rounded-full py-3 px-6 font-bold text-base transition-all duration-300',
+                    selectedType === 'individual' 
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' 
+                      : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
+                  )}
+                >
+                  <User className="h-4 w-4" />
+                  <span className="whitespace-nowrap">Individual</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="organization" 
+                  className={clsx(
+                    'flex items-center gap-2 rounded-full py-3 px-6 font-bold text-base transition-all duration-300',
+                    selectedType === 'organization' 
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' 
+                      : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
+                  )}
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="whitespace-nowrap">Organization</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           {/* Pricing Cards */}
@@ -240,13 +259,19 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                         </li>
                       ))}
                     </ul>
-                    <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
-                      variant={plan.buttonVariant}
-                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
-                    >
-                      {plan.buttonText}
-                    </Button>
+                    <Link href={plan.href} className="mt-8">
+                      <Button
+                        className={clsx(
+                          'w-full text-xl font-bold py-4 rounded-xl shadow-lg transition-all duration-300',
+                          plan.buttonVariant === 'outline'
+                            ? 'bg-transparent border-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 hover:text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white hover:scale-105'
+                        )}
+                        variant={plan.buttonVariant}
+                      >
+                        {plan.buttonText}
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               ))}
@@ -287,13 +312,19 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                         </li>
                       ))}
                     </ul>
-                    <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-xl font-bold py-4 rounded-xl shadow-lg mt-8"
-                      variant={plan.buttonVariant}
-                      onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
-                    >
-                      {plan.buttonText}
-                    </Button>
+                    <Link href={plan.href} className="mt-8">
+                      <Button
+                        className={clsx(
+                          'w-full text-xl font-bold py-4 rounded-xl shadow-lg transition-all duration-300',
+                          plan.buttonVariant === 'outline'
+                            ? 'bg-transparent border-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 hover:text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white hover:scale-105'
+                        )}
+                        variant={plan.buttonVariant}
+                      >
+                        {plan.buttonText}
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               ))}
