@@ -10,6 +10,8 @@ export interface User {
   id: string
   email: string
   name: string
+  avatar?: string
+  provider?: string
   company?: string
   phone?: string
   website?: string
@@ -287,6 +289,31 @@ export const authService = {
     })
 
     return { user, subscription }
+  },
+
+  // Get or create free trial subscription for OAuth users
+  async getOrCreateFreeTrialSubscription(userId: string): Promise<Subscription> {
+    // Check if user already has an active subscription
+    const existingSubscription = await subscriptionService.getActiveSubscription(userId)
+    if (existingSubscription) {
+      return existingSubscription
+    }
+
+    // Create free trial subscription
+    const subscription = await subscriptionService.createSubscription({
+      user_id: userId,
+      plan_id: 'free-trial',
+      plan_name: 'Free Trial',
+      interviews_remaining: 1,
+      total_interviews: 1,
+      price_per_interview: 0,
+      status: 'active',
+      payment_status: 'completed',
+      trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    })
+
+    return subscription
   }
 }
 
