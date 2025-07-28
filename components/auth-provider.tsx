@@ -71,32 +71,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true)
       
-      // In a real app, this would redirect to the OAuth provider
-      // For now, we'll simulate the OAuth flow
-      const mockUser = {
-        id: 'mock-user-id',
-        email: 'user@example.com',
-        name: 'Mock User',
-        role: 'candidate',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // For now, we'll simulate the OAuth flow with a prompt
+      // In production, this would redirect to the actual OAuth provider
+      const email = prompt(`Enter your ${provider} email for testing:`)
+      const name = prompt(`Enter your name for testing:`)
+      
+      if (!email || !name) {
+        setLoading(false)
+        return
       }
 
-      const mockSubscription = {
-        id: 'mock-sub-id',
-        user_id: mockUser.id,
-        plan_id: 'free-trial',
-        plan_name: 'Free Trial',
-        interviews_remaining: 1,
-        total_interviews: 1,
-        price_per_interview: 0,
-        status: 'active' as const,
-        payment_status: 'completed' as const,
-        trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Call our auth API to create/authenticate user
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'signin',
+          provider,
+          email,
+          name
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setUser(data.user)
+        setSubscription(data.subscription)
+        // Redirect to dashboard after successful sign-in
+        window.location.href = '/dashboard'
+      } else {
+        alert('Sign-in failed: ' + (data.error || 'Unknown error'))
       }
+    } catch (error) {
+      console.error('Sign-in error:', error)
+      alert('Sign-in failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
       // Simulate OAuth sign-in
       const response = await fetch('/api/auth', {
