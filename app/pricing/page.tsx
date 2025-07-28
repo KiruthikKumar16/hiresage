@@ -32,7 +32,7 @@ export default function PricingPage() {
               <a href="/" className="text-slate-300 hover:text-white transition-colors">
                 Home
               </a>
-              <a href="/dashboard" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg text-white font-medium">
+              <a href="/auth/signin" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-4 py-2 rounded-lg text-white font-medium">
                 Get Started
               </a>
             </div>

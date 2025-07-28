@@ -148,12 +148,12 @@ export default function JoCruitAIX() {
               companies evaluating candidates. Now with live video interviews and real-time AI analysis.
             </p>
                          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-               <Link href="/purchase">
+               <Link href="/auth/signin">
                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4">
                    Start Free Trial
                  </Button>
                </Link>
-               <Link href="/purchase">
+               <Link href="/pricing">
                  <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent">
                    View Plans
                  </Button>
@@ -367,7 +367,7 @@ export default function JoCruitAIX() {
                      ))}
                    </ul>
                    <div className="flex justify-center">
-                     <Link href="/purchase">
+                     <Link href="/auth/signin">
                      <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
                        Get Started
                      </Button>
@@ -435,12 +435,12 @@ export default function JoCruitAIX() {
               process.
             </p>
                          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-               <Link href="/purchase">
+               <Link href="/auth/signin">
                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg px-8 py-4">
                    Start Your Free Trial
                  </Button>
                </Link>
-               <Link href="/purchase">
+               <Link href="/pricing">
                  <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 text-lg px-8 py-4 bg-transparent">
                    View All Plans
                  </Button>
