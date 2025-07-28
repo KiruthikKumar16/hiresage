@@ -19,7 +19,23 @@ import {
   Settings,
   User,
   Star,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Search,
+  Filter,
+  MoreVertical,
+  Play,
+  Eye,
+  Download,
+  Edit,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
+  Timer,
+  Target,
+  Award,
+  Zap
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -27,18 +43,34 @@ import { useAuth } from "@/components/auth-provider"
 import { toast } from "sonner"
 import { ProtectedRoute } from "@/components/protected-route"
 
+interface Interview {
+  id: string
+  candidateName: string
+  candidateEmail: string
+  position: string
+  date: string
+  duration: number
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
+  score: number
+  questions: number
+  feedback: string
+  recordingUrl?: string
+  transcriptUrl?: string
+}
+
 interface DashboardData {
   totalInterviews: number
   completedInterviews: number
   pendingInterviews: number
   averageScore: number
-  recentInterviews: Array<{
-    id: string
-    candidateName: string
-    date: string
-    status: string
-    score: number
-  }>
+  recentInterviews: Interview[]
+  upcomingInterviews: Interview[]
+  performanceMetrics: {
+    totalQuestions: number
+    averageDuration: number
+    successRate: number
+    topSkills: string[]
+  }
 }
 
 export default function Dashboard() {
@@ -46,52 +78,120 @@ export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   useEffect(() => {
-    // Simulate loading dashboard data
-    const loadDashboardData = async () => {
-      try {
-        // In a real app, this would be an API call
-        const mockData: DashboardData = {
-          totalInterviews: 24,
-          completedInterviews: 18,
-          pendingInterviews: 6,
-          averageScore: 85,
-          recentInterviews: [
-            {
-              id: "1",
-              candidateName: "Sarah Johnson",
-              date: "2024-01-15",
-              status: "Completed",
-              score: 92
-            },
-            {
-              id: "2", 
-              candidateName: "Michael Chen",
-              date: "2024-01-14",
-              status: "Completed",
-              score: 78
-            },
-            {
-              id: "3",
-              candidateName: "Emily Davis",
-              date: "2024-01-13", 
-              status: "Pending",
-              score: 0
-            }
-          ]
-        }
-        
-        setDashboardData(mockData)
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadDashboardData()
   }, [])
+
+  const loadDashboardData = async () => {
+    try {
+      // Simulate API call with realistic data
+      const mockData: DashboardData = {
+        totalInterviews: 24,
+        completedInterviews: 18,
+        pendingInterviews: 6,
+        averageScore: 85,
+        recentInterviews: [
+          {
+            id: "1",
+            candidateName: "Sarah Johnson",
+            candidateEmail: "sarah.johnson@email.com",
+            position: "Frontend Developer",
+            date: "2024-01-15",
+            duration: 45,
+            status: "completed",
+            score: 92,
+            questions: 8,
+            feedback: "Excellent technical skills and communication. Strong problem-solving abilities.",
+            recordingUrl: "/recordings/interview-1.mp4",
+            transcriptUrl: "/transcripts/interview-1.pdf"
+          },
+          {
+            id: "2", 
+            candidateName: "Michael Chen",
+            candidateEmail: "michael.chen@email.com",
+            position: "Backend Engineer",
+            date: "2024-01-14",
+            duration: 52,
+            status: "completed",
+            score: 78,
+            questions: 10,
+            feedback: "Good technical knowledge but needs improvement in system design.",
+            recordingUrl: "/recordings/interview-2.mp4",
+            transcriptUrl: "/transcripts/interview-2.pdf"
+          },
+          {
+            id: "3",
+            candidateName: "Emily Davis",
+            candidateEmail: "emily.davis@email.com",
+            position: "Product Manager",
+            date: "2024-01-16",
+            duration: 0,
+            status: "scheduled",
+            score: 0,
+            questions: 0,
+            feedback: ""
+          },
+          {
+            id: "4",
+            candidateName: "David Wilson",
+            candidateEmail: "david.wilson@email.com",
+            position: "DevOps Engineer",
+            date: "2024-01-13",
+            duration: 38,
+            status: "completed",
+            score: 88,
+            questions: 7,
+            feedback: "Strong infrastructure knowledge and automation skills.",
+            recordingUrl: "/recordings/interview-4.mp4",
+            transcriptUrl: "/transcripts/interview-4.pdf"
+          }
+        ],
+        upcomingInterviews: [
+          {
+            id: "5",
+            candidateName: "Lisa Anderson",
+            candidateEmail: "lisa.anderson@email.com",
+            position: "UX Designer",
+            date: "2024-01-17",
+            duration: 0,
+            status: "scheduled",
+            score: 0,
+            questions: 0,
+            feedback: ""
+          },
+          {
+            id: "6",
+            candidateName: "James Brown",
+            candidateEmail: "james.brown@email.com",
+            position: "Data Scientist",
+            date: "2024-01-18",
+            duration: 0,
+            status: "scheduled",
+            score: 0,
+            questions: 0,
+            feedback: ""
+          }
+        ],
+        performanceMetrics: {
+          totalQuestions: 156,
+          averageDuration: 42,
+          successRate: 75,
+          topSkills: ["JavaScript", "React", "Node.js", "Python", "AWS"]
+        }
+      }
+      
+      setDashboardData(mockData)
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error)
+      toast.error("Failed to load dashboard data")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -102,11 +202,38 @@ export default function Dashboard() {
     }
   }
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+  const startNewInterview = () => {
+    toast.info("Starting new interview...")
+    // Navigate to interview page
+    window.location.href = '/interview/new'
   }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-600'
+      case 'in-progress': return 'bg-blue-600'
+      case 'scheduled': return 'bg-yellow-600'
+      case 'cancelled': return 'bg-red-600'
+      default: return 'bg-gray-600'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 className="w-4 h-4" />
+      case 'in-progress': return <Timer className="w-4 h-4" />
+      case 'scheduled': return <Clock className="w-4 h-4" />
+      case 'cancelled': return <XCircle className="w-4 h-4" />
+      default: return <AlertCircle className="w-4 h-4" />
+    }
+  }
+
+  const filteredInterviews = dashboardData?.recentInterviews.filter(interview => {
+    const matchesSearch = interview.candidateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         interview.position.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || interview.status === statusFilter
+    return matchesSearch && matchesStatus
+  }) || []
 
   if (loading) {
     return (
@@ -208,10 +335,10 @@ export default function Dashboard() {
                 Dashboard
               </Badge>
               <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
-                Welcome back, {user?.name || user?.email}!
+                Welcome back, {user?.name || user?.email}! 👋
               </h1>
               <p className="text-slate-300">
-                Here's your interview performance overview
+                Here's your interview performance overview and upcoming sessions
               </p>
               
               {/* Subscription Info */}
@@ -219,7 +346,10 @@ export default function Dashboard() {
                 <div className="mt-4 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{subscription.plan_name}</h3>
+                      <h3 className="text-lg font-semibold text-white flex items-center">
+                        <Award className="w-5 h-5 mr-2 text-yellow-400" />
+                        {subscription.plan_name}
+                      </h3>
                       <p className="text-slate-300">
                         {subscription.interviews_remaining} interviews remaining
                       </p>
@@ -235,7 +365,7 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm hover:bg-slate-800/70 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Total Interviews</CardTitle>
                   <Users className="h-4 w-4 text-blue-400" />
@@ -246,7 +376,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm hover:bg-slate-800/70 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Completed</CardTitle>
                   <CheckCircle className="h-4 w-4 text-green-400" />
@@ -257,7 +387,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm hover:bg-slate-800/70 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Pending</CardTitle>
                   <Clock className="h-4 w-4 text-yellow-400" />
@@ -268,7 +398,7 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm hover:bg-slate-800/70 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-slate-300">Avg Score</CardTitle>
                   <TrendingUp className="h-4 w-4 text-purple-400" />
@@ -281,13 +411,16 @@ export default function Dashboard() {
             </div>
 
             {/* Main Dashboard Content */}
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/50 border-slate-700">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border-slate-700">
                 <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
                   Overview
                 </TabsTrigger>
                 <TabsTrigger value="interviews" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
                   Interviews
+                </TabsTrigger>
+                <TabsTrigger value="upcoming" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  Upcoming
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
                   Analytics
@@ -306,21 +439,21 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {dashboardData?.recentInterviews.map((interview) => (
-                          <div key={interview.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+                        {dashboardData?.recentInterviews.slice(0, 3).map((interview) => (
+                          <div key={interview.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                                 <User className="w-4 h-4 text-white" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-white">{interview.candidateName}</p>
+                                <p className="text-xs text-slate-400">{interview.position}</p>
                                 <p className="text-xs text-slate-400">{interview.date}</p>
                               </div>
                             </div>
                             <div className="text-right">
                               <Badge 
-                                variant={interview.status === "Completed" ? "default" : "secondary"}
-                                className={interview.status === "Completed" ? "bg-green-600" : "bg-yellow-600"}
+                                className={`${getStatusColor(interview.status)} text-white`}
                               >
                                 {interview.status}
                               </Badge>
@@ -344,8 +477,11 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 gap-4">
-                        <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-                          <Video className="w-4 h-4 mr-2" />
+                        <Button 
+                          onClick={startNewInterview}
+                          className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
                           Start New Interview
                         </Button>
                         <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50">
@@ -360,9 +496,65 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Performance Metrics */}
+                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-white">Performance Metrics</CardTitle>
+                    <CardDescription className="text-slate-300">
+                      Key insights from your interviews
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.totalQuestions}</div>
+                        <p className="text-sm text-slate-400">Total Questions</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.averageDuration}min</div>
+                        <p className="text-sm text-slate-400">Avg Duration</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.successRate}%</div>
+                        <p className="text-sm text-slate-400">Success Rate</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.topSkills.length}</div>
+                        <p className="text-sm text-slate-400">Top Skills</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="interviews" className="space-y-6">
+                {/* Search and Filter */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Search interviews..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-4 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                {/* Interviews List */}
                 <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="text-white">All Interviews</CardTitle>
@@ -371,29 +563,164 @@ export default function Dashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-8">
-                      <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-300">Interview management coming soon...</p>
+                    <div className="space-y-4">
+                      {filteredInterviews.map((interview) => (
+                        <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
+                              <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
+                              <p className="text-xs text-slate-400">{interview.position}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-sm text-white">{interview.date}</p>
+                              {interview.duration > 0 && (
+                                <p className="text-xs text-slate-400">{interview.duration} min</p>
+                              )}
+                            </div>
+                            <Badge className={`${getStatusColor(interview.status)} text-white`}>
+                              {getStatusIcon(interview.status)}
+                              <span className="ml-1">{interview.status}</span>
+                            </Badge>
+                            {interview.score > 0 && (
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-white">{interview.score}%</p>
+                                <p className="text-xs text-slate-400">Score</p>
+                              </div>
+                            )}
+                            <div className="flex items-center space-x-2">
+                              {interview.status === 'scheduled' && (
+                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Start
+                                </Button>
+                              )}
+                              {interview.status === 'completed' && (
+                                <>
+                                  <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    View
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                    <Download className="w-3 h-3 mr-1" />
+                                    Report
+                                  </Button>
+                                </>
+                              )}
+                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                <MoreVertical className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="upcoming" className="space-y-6">
+                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-white">Upcoming Interviews</CardTitle>
+                    <CardDescription className="text-slate-300">
+                      Scheduled interview sessions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dashboardData?.upcomingInterviews.map((interview) => (
+                        <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
+                              <Clock className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
+                              <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
+                              <p className="text-xs text-slate-400">{interview.position}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-sm text-white">{interview.date}</p>
+                              <p className="text-xs text-slate-400">Scheduled</p>
+                            </div>
+                            <Badge className="bg-yellow-600 text-white">
+                              <Clock className="w-4 h-4 mr-1" />
+                              Scheduled
+                            </Badge>
+                            <div className="flex items-center space-x-2">
+                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                <Play className="w-3 h-3 mr-1" />
+                                Start
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-white">Analytics</CardTitle>
-                    <CardDescription className="text-slate-300">
-                      Detailed performance insights
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-300">Analytics dashboard coming soon...</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Performance Chart */}
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">Performance Overview</CardTitle>
+                      <CardDescription className="text-slate-300">
+                        Interview success rates and scores
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-300">Performance charts coming soon...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Top Skills */}
+                  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white">Top Skills Assessed</CardTitle>
+                      <CardDescription className="text-slate-300">
+                        Most frequently evaluated skills
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {dashboardData?.performanceMetrics.topSkills.map((skill, index) => (
+                          <div key={skill} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                <span className="text-xs text-white font-bold">{index + 1}</span>
+                              </div>
+                              <span className="text-sm text-white">{skill}</span>
+                            </div>
+                            <Badge className="bg-blue-600/20 text-blue-300 border-blue-500/30">
+                              {Math.floor(Math.random() * 20) + 80}%
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
