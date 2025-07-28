@@ -14,29 +14,29 @@ interface PricingProps {
 }
 
 export function Pricing({ onSelectPlan }: PricingProps) {
-  const [selectedType, setSelectedType] = useState<'individual' | 'organization'>('individual')
+  const [selectedType, setSelectedType] = useState<'individual' | 'organization'>('organization')
 
   const individualPlans = [
     {
-      name: 'Free',
+      name: 'Free Trial',
       price: '$0',
-      period: 'forever',
+      period: '1 interview',
       description: 'Perfect for trying out our platform',
       features: [
-        '3 interviews per month',
+        '1 free interview',
         'Basic emotion analysis',
         'Standard cheating detection',
         'Email support',
         'Basic analytics'
       ],
       popular: false,
-      buttonText: 'Get Started Free',
+      buttonText: 'Start Free Trial',
       buttonVariant: 'outline' as const
     },
     {
-      name: 'Basic',
-      price: '$29',
-      period: 'per month',
+      name: 'Starter',
+      price: '$1.80',
+      period: 'per interview',
       description: 'Great for job seekers and professionals',
       features: [
         '10 interviews per month',
@@ -47,17 +47,17 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         'Interview feedback',
         'Practice mode'
       ],
-      popular: true,
-      buttonText: 'Start Basic Plan',
+      popular: false,
+      buttonText: 'Get Started',
       buttonVariant: 'default' as const
     },
     {
-      name: 'Premium',
-      price: '$79',
-      period: 'per month',
+      name: 'Growth',
+      price: '$1.50',
+      period: 'per interview',
       description: 'For serious career development',
       features: [
-        'Unlimited interviews',
+        '50 interviews per month',
         'AI-powered coaching',
         'Real-time feedback',
         'Video recording',
@@ -66,8 +66,27 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         'Custom interview scenarios',
         'Performance tracking'
       ],
+      popular: true,
+      buttonText: 'Get Started',
+      buttonVariant: 'default' as const
+    },
+    {
+      name: 'Pro',
+      price: '$1.20',
+      period: 'per interview',
+      description: 'For professionals and power users',
+      features: [
+        '200 interviews per month',
+        'Custom question sets',
+        'API integration',
+        'White-label options',
+        'Dedicated support',
+        'Advanced analytics',
+        'Custom branding',
+        'Bulk operations'
+      ],
       popular: false,
-      buttonText: 'Start Premium Plan',
+      buttonText: 'Get Started',
       buttonVariant: 'default' as const
     }
   ]
@@ -75,11 +94,11 @@ export function Pricing({ onSelectPlan }: PricingProps) {
   const organizationPlans = [
     {
       name: 'Starter',
-      price: '$199',
-      period: 'per month',
+      price: '$1.80',
+      period: 'per interview',
       description: 'Perfect for small teams and startups',
       features: [
-        'Up to 10 users',
+        '10 interviews per month',
         'Basic video interviews',
         'Standard emotion analysis',
         'Cheating detection',
@@ -88,16 +107,16 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         'Team dashboard'
       ],
       popular: false,
-      buttonText: 'Start Starter Plan',
+      buttonText: 'Get Started',
       buttonVariant: 'outline' as const
     },
     {
-      name: 'Professional',
-      price: '$499',
-      period: 'per month',
+      name: 'Growth',
+      price: '$1.50',
+      period: 'per interview',
       description: 'For growing companies and HR teams',
       features: [
-        'Up to 50 users',
+        '50 interviews per month',
         'Advanced video interviews',
         'Enhanced emotion analysis',
         'Advanced cheating detection',
@@ -108,27 +127,46 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         'Bulk candidate management'
       ],
       popular: true,
-      buttonText: 'Start Professional Plan',
+      buttonText: 'Get Started',
+      buttonVariant: 'default' as const
+    },
+    {
+      name: 'Pro',
+      price: '$1.20',
+      period: 'per interview',
+      description: 'For established organizations',
+      features: [
+        '200 interviews per month',
+        'Custom question sets',
+        'API integration',
+        'White-label options',
+        'Dedicated support',
+        'Custom integrations',
+        'Advanced security',
+        'SLA guarantees'
+      ],
+      popular: false,
+      buttonText: 'Get Started',
       buttonVariant: 'default' as const
     },
     {
       name: 'Enterprise',
-      price: 'Custom',
-      period: 'contact us',
+      price: '$1.00',
+      period: 'per interview',
       description: 'For large organizations with custom needs',
       features: [
-        'Unlimited users',
-        'Custom AI models',
-        'Advanced security',
-        'Dedicated support',
+        '1000+ interviews per month',
+        'Full analytics suite',
+        'Admin/team features',
+        'SLA guarantee',
         'Custom integrations',
         'White-label solution',
         'On-premise deployment',
-        'SLA guarantees',
-        'Custom training'
+        'Custom training',
+        'Dedicated account manager'
       ],
       popular: false,
-      buttonText: 'Contact Sales',
+      buttonText: 'Get Started',
       buttonVariant: 'default' as const
     }
   ]
@@ -175,7 +213,7 @@ export function Pricing({ onSelectPlan }: PricingProps) {
           />
         </div>
         <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight drop-shadow-lg">Simple, Transparent Pricing</h2>
-        <p className="text-xl text-slate-200 max-w-2xl mx-auto">Pay only for what you use. Scale up or down as needed.</p>
+        <p className="text-xl text-slate-200 max-w-2xl mx-auto">Pay only for what you use. Scale up or down as needed with our flexible pricing model.</p>
       </div>
 
       {/* User Type Toggle */}
@@ -200,7 +238,7 @@ export function Pricing({ onSelectPlan }: PricingProps) {
 
           {/* Pricing Cards */}
           <TabsContent value="individual" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {individualPlans.map((plan, index) => (
                 <Card
                   key={index}
@@ -217,24 +255,24 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                     </div>
                   )}
                   <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-3xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
+                    <CardTitle className="text-2xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
                     <div className="flex items-baseline justify-center gap-1 mb-2">
-                      <span className="text-5xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                      <span className="text-base text-slate-300 font-medium">/{plan.period}</span>
+                      <span className="text-4xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                      <span className="text-sm text-slate-300 font-medium">/{plan.period}</span>
                     </div>
-                    <p className="text-slate-400 text-base mb-2">{plan.description}</p>
+                    <p className="text-slate-400 text-sm mb-2">{plan.description}</p>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-0">
                     <ul className="space-y-3">
                       {plan.features.map((feature, featureIndex) => (
                         <li key={featureIndex} className="flex items-center gap-3">
                           <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
-                          <span className="text-base text-slate-200">{feature}</span>
+                          <span className="text-sm text-slate-200">{feature}</span>
                         </li>
                       ))}
                     </ul>
                     <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg font-bold py-3 rounded-xl shadow-md"
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-base font-bold py-3 rounded-xl shadow-md"
                       variant={plan.buttonVariant}
                       onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'individual')}
                     >
@@ -247,7 +285,7 @@ export function Pricing({ onSelectPlan }: PricingProps) {
           </TabsContent>
 
           <TabsContent value="organization" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {organizationPlans.map((plan, index) => (
                 <Card
                   key={index}
@@ -264,24 +302,24 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                     </div>
                   )}
                   <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-3xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
+                    <CardTitle className="text-2xl font-extrabold text-white mb-2 drop-shadow-md">{plan.name}</CardTitle>
                     <div className="flex items-baseline justify-center gap-1 mb-2">
-                      <span className="text-5xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
-                      <span className="text-base text-slate-300 font-medium">/{plan.period}</span>
+                      <span className="text-4xl font-black text-cyan-300 drop-shadow">{plan.price}</span>
+                      <span className="text-sm text-slate-300 font-medium">/{plan.period}</span>
                     </div>
-                    <p className="text-slate-400 text-base mb-2">{plan.description}</p>
+                    <p className="text-slate-400 text-sm mb-2">{plan.description}</p>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-0">
                     <ul className="space-y-3">
                       {plan.features.map((feature, featureIndex) => (
                         <li key={featureIndex} className="flex items-center gap-3">
                           <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
-                          <span className="text-base text-slate-200">{feature}</span>
+                          <span className="text-sm text-slate-200">{feature}</span>
                         </li>
                       ))}
                     </ul>
                     <Button
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-lg font-bold py-3 rounded-xl shadow-md"
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-base font-bold py-3 rounded-xl shadow-md"
                       variant={plan.buttonVariant}
                       onClick={() => onSelectPlan?.(plan.name.toLowerCase(), 'organization')}
                     >
