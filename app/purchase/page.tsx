@@ -25,60 +25,60 @@ const plans = {
     description: "Perfect for trying out our platform",
     period: "forever"
   },
-  "starter": {
-    id: "starter",
-    name: "Starter",
-    price: 1.80,
+  "basic": {
+    id: "basic",
+    name: "Basic",
+    price: 29,
     interviews: 10,
-    features: ["Basic interviews", "Standard reports", "Email support", "Basic analytics"],
-    popular: false,
+    features: ["10 interviews per month", "Advanced emotion analysis", "Enhanced cheating detection", "Priority email support", "Detailed analytics", "Interview feedback", "Practice mode"],
+    popular: true,
     trial: false,
     description: "Great for job seekers and professionals",
     period: "per month"
   },
-  "growth": {
-    id: "growth",
-    name: "Growth",
-    price: 1.50,
-    interviews: 50,
-    features: ["Custom branding", "Bulk upload", "Advanced analytics", "Priority support"],
-    popular: true,
-    trial: false,
-    description: "For growing companies and HR teams",
-    period: "per month"
-  },
-  "pro": {
-    id: "pro",
-    name: "Pro",
-    price: 1.20,
-    interviews: 200,
-    features: ["Custom question sets", "API integration", "White-label options", "Dedicated support"],
+  "premium": {
+    id: "premium",
+    name: "Premium",
+    price: 79,
+    interviews: 500,
+    features: ["Unlimited interviews", "AI-powered coaching", "Real-time feedback", "Video recording", "Advanced analytics", "Priority support", "Custom interview scenarios", "Performance tracking"],
     popular: false,
     trial: false,
     description: "For serious career development",
+    period: "per month"
+  },
+  "starter": {
+    id: "starter",
+    name: "Starter",
+    price: 199,
+    interviews: 10,
+    features: ["Up to 10 users", "Basic video interviews", "Standard emotion analysis", "Cheating detection", "Email support", "Basic reporting", "Team dashboard"],
+    popular: false,
+    trial: false,
+    description: "Perfect for small teams and startups",
     period: "per month"
   },
   "professional": {
     id: "professional",
     name: "Professional",
-    price: 1.20,
-    interviews: 200,
-    features: ["Custom question sets", "API integration", "White-label options", "Dedicated support"],
-    popular: false,
+    price: 499,
+    interviews: 50,
+    features: ["Up to 50 users", "Advanced video interviews", "Enhanced emotion analysis", "Advanced cheating detection", "Priority support", "Advanced analytics", "Custom branding", "API access", "Bulk candidate management"],
+    popular: true,
     trial: false,
-    description: "For serious career development",
+    description: "For growing companies and HR teams",
     period: "per month"
   },
   "enterprise": {
     id: "enterprise",
     name: "Enterprise",
-    price: 1.00,
+    price: 0,
     interviews: 1000,
-    features: ["Full analytics suite", "Admin/team features", "SLA guarantee", "Custom integrations"],
+    features: ["Unlimited users", "Custom AI models", "Advanced security", "Dedicated support", "Custom integrations", "White-label solution", "On-premise deployment", "SLA guarantees", "Custom training"],
     popular: false,
     trial: false,
     description: "For large organizations with custom needs",
-    period: "per month"
+    period: "contact us"
   }
 }
 
@@ -194,86 +194,97 @@ function PurchasePageContent() {
             {/* Selected Plan Details */}
             <div>
               <h2 className="text-xl font-bold text-white mb-6">Your Selected Plan</h2>
-              
-              <Card className="bg-slate-800/90 border-2 border-slate-700 rounded-3xl shadow-2xl transition-all duration-500 hover:scale-105 hover:border-cyan-400/80">
-                {selectedPlan.popular && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
-                    <span className="inline-flex items-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm shadow-xl border-2 border-white/20">
-                      <Star className="h-4 w-4 mr-2" /> Most Popular
-                    </span>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-6 pt-8">
-                  <CardTitle className="text-4xl font-extrabold text-white mb-4 drop-shadow-md">{selectedPlan.name}</CardTitle>
-                  <div className="flex items-baseline justify-center gap-2 mb-4">
-                    <span className="text-6xl font-black text-cyan-300 drop-shadow">
-                      ${selectedPlan.price}
-                    </span>
-                    <span className="text-xl text-slate-300 font-medium">/{selectedPlan.period}</span>
-                  </div>
-                  <p className="text-slate-400 text-lg mb-4 leading-relaxed">{selectedPlan.description}</p>
-                  <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-300">Plan Type:</span>
-                      <span className="text-white font-semibold capitalize">{type}</span>
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    {/* Plan Header */}
+                    <div className="text-center space-y-4">
+                      {selectedPlan.popular && (
+                        <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-bold text-sm">
+                          <Star className="h-4 w-4 mr-2" /> Most Popular
+                        </div>
+                      )}
+                      <h3 className="text-3xl font-bold text-white">{selectedPlan.name}</h3>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-4xl font-black text-cyan-300">
+                          ${selectedPlan.price}
+                        </span>
+                        <span className="text-lg text-slate-300 font-medium">/{selectedPlan.period}</span>
+                      </div>
+                      <p className="text-slate-400 text-lg">{selectedPlan.description}</p>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-slate-300">Interviews:</span>
-                      <span className="text-white font-semibold">{selectedPlan.interviews} per month</span>
+
+                    {/* Plan Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Plan Details</h3>
+                      <div className="bg-slate-700/50 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300">Plan Type:</span>
+                          <span className="text-white font-semibold capitalize">{type}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300">Interviews:</span>
+                          <span className="text-white font-semibold">{selectedPlan.interviews} per month</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-300">Status:</span>
+                          <span className="text-white font-semibold">{selectedPlan.trial ? 'Free Trial' : 'Paid Plan'}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-0">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-4">Plan Features</h3>
-                    <ul className="space-y-4">
-                      {selectedPlan.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-4">
-                          <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-                          <span className="text-lg text-slate-200 leading-relaxed">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {/* Plan Benefits */}
-                  <div className="bg-gradient-to-r from-blue-900/50 to-cyan-900/50 rounded-2xl p-6">
-                    <h3 className="text-xl font-bold text-white mb-4">What You'll Get</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                          <Brain className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-white font-semibold">AI-Powered Interviews</p>
-                          <p className="text-slate-300 text-sm">Advanced analysis and feedback</p>
-                        </div>
+
+                    {/* Plan Features */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Plan Features</h3>
+                      <div className="space-y-3">
+                        {selectedPlan.features.map((feature, index) => (
+                          <div key={index} className="flex items-start gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-200">{feature}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                          <Shield className="w-5 h-5 text-white" />
+                    </div>
+
+                    {/* Plan Benefits */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">What You'll Get</h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                            <Brain className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">AI-Powered Interviews</p>
+                            <p className="text-slate-300 text-sm">Advanced analysis and feedback</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white font-semibold">Secure Platform</p>
-                          <p className="text-slate-300 text-sm">Enterprise-grade security</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">Secure Platform</p>
+                            <p className="text-slate-300 text-sm">Enterprise-grade security</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
-                          <Zap className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">Real-time Analysis</p>
+                            <p className="text-slate-300 text-sm">Instant insights and feedback</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-white font-semibold">Real-time Analysis</p>
-                          <p className="text-slate-300 text-sm">Instant insights and feedback</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg flex items-center justify-center">
-                          <Users className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-white font-semibold">Scalable Solution</p>
-                          <p className="text-slate-300 text-sm">Grow with your needs</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg flex items-center justify-center">
+                            <Users className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">Scalable Solution</p>
+                            <p className="text-slate-300 text-sm">Grow with your needs</p>
+                          </div>
                         </div>
                       </div>
                     </div>
