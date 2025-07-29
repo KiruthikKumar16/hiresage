@@ -100,9 +100,8 @@ export interface Interview {
   position?: string
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
   overall_score?: number
-  flagged_cheating: boolean
-  cheating_flags: any[]
-  emotion_data: Record<string, any>
+  emotion_data?: Record<string, any>
+  cheating_detection?: Record<string, any>
   report_url?: string
   video_url?: string
   audio_url?: string
@@ -111,7 +110,6 @@ export interface Interview {
   duration?: number
   transcript?: string
   ai_feedback?: string
-  result_json: Record<string, any>
   created_at: string
   updated_at: string
 }

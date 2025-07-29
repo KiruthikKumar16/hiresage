@@ -66,10 +66,8 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
           candidate_name: validatedData.candidateName,
           position: 'General Interview',
           status: 'in_progress' as const,
-          flagged_cheating: false,
-          cheating_flags: [],
           emotion_data: {},
-          result_json: {}
+          cheating_detection: {}
         }
 
         interview = await interviewService.createInterview(interviewData)
