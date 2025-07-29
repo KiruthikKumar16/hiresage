@@ -76,13 +76,45 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
 
       // Generate first question using AI
       console.log('Generating first question...')
-      const firstQuestion = await enhancedAIService.generateInterviewQuestion(
-        'General interview context',
-        [],
-        { name: validatedData.candidateName },
-        'General'
-      )
-      console.log('First question generated:', firstQuestion.question)
+      console.log('AI Service available:', !!enhancedAIService)
+      console.log('Environment check - GEMINI API KEY:', !!process.env.GOOGLE_GEMINI_API_KEY)
+      
+      try {
+        const firstQuestion = await enhancedAIService.generateInterviewQuestion(
+          'General interview context',
+          [],
+          { name: validatedData.candidateName },
+          'General'
+        )
+        console.log('First question generated:', firstQuestion.question)
+      } catch (aiError) {
+        console.error('AI Service error:', aiError)
+        console.error('AI Error details:', {
+          message: aiError.message,
+          stack: aiError.stack,
+          name: aiError.name
+        })
+        
+        // Use fallback question if AI fails
+        const fallbackQuestion = {
+          question: "Tell me about your experience and why you're interested in this position.",
+          category: "general",
+          difficulty: "medium",
+          timeLimit: 120
+        }
+        console.log('Using fallback question:', fallbackQuestion.question)
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            interviewId: interview.id,
+            sessionToken: sessionToken,
+            sessionId: session.id,
+            settings: validatedData.settings,
+            firstQuestion: fallbackQuestion
+          }
+        })
+      }
 
       // Session is already created with correct question index, no need to update
       console.log('Session setup completed successfully')
