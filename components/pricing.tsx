@@ -15,7 +15,7 @@ interface PricingProps {
 }
 
 export function Pricing({ onSelectPlan }: PricingProps) {
-  const [selectedType, setSelectedType] = useState<'individual' | 'organization'>('individual')
+  const [selectedType, setSelectedType] = useState<'individual' | 'organization'>('organization')
 
   const individualPlans = [
     {
@@ -119,19 +119,19 @@ export function Pricing({ onSelectPlan }: PricingProps) {
     },
     {
       name: 'Enterprise',
-      price: 'Custom',
-      period: 'contact us',
-      description: 'For large organizations with custom needs',
+      price: '$999',
+      period: 'per month',
+      description: 'For large organizations and enterprises',
       features: [
         'Unlimited users',
-        'Custom AI models',
-        'Advanced security',
+        'Custom video interviews',
+        'Advanced AI analysis',
+        'Enterprise security',
         'Dedicated support',
         'Custom integrations',
         'White-label solution',
-        'On-premise deployment',
-        'SLA guarantees',
-        'Custom training'
+        'Advanced reporting',
+        'SLA guarantee'
       ],
       popular: false,
       buttonText: 'Contact Sales',
@@ -164,27 +164,29 @@ export function Pricing({ onSelectPlan }: PricingProps) {
   ]
 
   return (
-    <div className="relative py-20 px-4 md:px-8 bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 overflow-hidden rounded-3xl shadow-2xl">
-      {/* Floating background shapes */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-cyan-700/20 rounded-full blur-3xl z-0" />
-      <div className="absolute -bottom-32 right-0 w-96 h-96 bg-blue-700/20 rounded-full blur-3xl z-0" />
-      <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-blue-400/10 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2 z-0" />
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
 
-      {/* Header */}
-      <div className="relative z-10 text-center mb-16">
+      {/* Header Section */}
+      <div className="relative z-10 text-center py-20 px-4">
         <div className="flex justify-center mb-8">
           <Image
-            src="/JoCruit_Logo/logo_light.png"
+            src="/JoCruit_Logo/logo_full_dark.png"
             alt="JoCruit AI"
-            width={100}
-            height={100}
-            className="w-24 h-24 drop-shadow-xl"
+            width={200}
+            height={60}
+            className="h-16 w-auto"
           />
         </div>
-        <h2 className="text-5xl md:text-6xl font-extrabold text-white mb-6 tracking-tight drop-shadow-lg leading-tight">
+        <h1 className="text-5xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-cyan-200 to-blue-200 bg-clip-text text-transparent drop-shadow-2xl">
           Simple, Transparent Pricing
-        </h2>
-        <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto leading-relaxed">
+        </h1>
+        <p className="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
           Pay only for what you use. Scale up or down as needed with our flexible pricing model.
         </p>
       </div>
@@ -197,18 +199,6 @@ export function Pricing({ onSelectPlan }: PricingProps) {
             <div className="w-full max-w-md">
               <TabsList className="grid w-full grid-cols-2 rounded-full bg-slate-800/80 border-2 border-slate-700 shadow-lg p-1 h-16">
                 <TabsTrigger 
-                  value="individual" 
-                  className={clsx(
-                    'flex items-center gap-2 rounded-full py-3 px-6 font-bold text-base transition-all duration-300',
-                    selectedType === 'individual' 
-                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' 
-                      : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
-                  )}
-                >
-                  <User className="h-4 w-4" />
-                  <span className="whitespace-nowrap">Individual</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="organization" 
                   className={clsx(
                     'flex items-center gap-2 rounded-full py-3 px-6 font-bold text-base transition-all duration-300',
@@ -219,6 +209,18 @@ export function Pricing({ onSelectPlan }: PricingProps) {
                 >
                   <Building2 className="h-4 w-4" />
                   <span className="whitespace-nowrap">Organization</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="individual" 
+                  className={clsx(
+                    'flex items-center gap-2 rounded-full py-3 px-6 font-bold text-base transition-all duration-300',
+                    selectedType === 'individual' 
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105' 
+                      : 'text-slate-300 hover:bg-slate-700/40 hover:text-white'
+                  )}
+                >
+                  <User className="h-4 w-4" />
+                  <span className="whitespace-nowrap">Individual</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -333,19 +335,27 @@ export function Pricing({ onSelectPlan }: PricingProps) {
         </Tabs>
       </div>
 
-      {/* Features Section */}
-      <div className="relative z-10 mt-20">
-        <h2 className="text-4xl font-bold text-center mb-12 text-white drop-shadow">Powerful Features for Every Plan</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {features.map((feature, index) => (
-            <div key={index} className="text-center group">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <feature.icon className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
-              <p className="text-slate-300 text-lg leading-relaxed">{feature.description}</p>
-            </div>
-          ))}
+      {/* Footer Section */}
+      <div className="relative z-10 text-center py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
+            Ready to Transform Your Hiring Process?
+          </h2>
+          <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+            Join thousands of companies and universities already using JoCruit AI to streamline their interview process.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signin">
+              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-8 py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300">
+                Start Your Free Trial
+              </Button>
+            </Link>
+            <Link href="/contact">
+              <Button variant="outline" className="border-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 hover:text-white px-8 py-4 text-lg font-bold rounded-xl shadow-lg transition-all duration-300">
+                Contact Sales
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
