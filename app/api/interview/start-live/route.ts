@@ -26,16 +26,27 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
 
       // Check if user has remaining interviews
       console.log('Checking subscription for user:', user.id)
-      const subscription = await subscriptionService.getActiveSubscription(user.id)
-      console.log('Subscription found:', !!subscription, 'remaining:', subscription?.interviews_remaining)
-      
-      if (!subscription || subscription.interviews_remaining <= 0) {
+      try {
+        const subscription = await subscriptionService.getActiveSubscription(user.id)
+        console.log('Subscription found:', !!subscription, 'remaining:', subscription?.interviews_remaining)
+        
+        if (!subscription || subscription.interviews_remaining <= 0) {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'No interviews remaining. Please upgrade your subscription.' 
+            },
+            { status: 403 }
+          )
+        }
+      } catch (subError) {
+        console.error('Subscription check error:', subError)
         return NextResponse.json(
           { 
             success: false, 
-            error: 'No interviews remaining. Please upgrade your subscription.' 
+            error: 'Failed to check subscription' 
           },
-          { status: 403 }
+          { status: 500 }
         )
       }
 
@@ -47,40 +58,71 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         status: 'in_progress'
       })
       
-      const interviewData = {
-        user_id: user.id,
-        candidate_name: validatedData.candidateName,
-        position: 'General Interview',
-        status: 'in_progress'
-      }
+      let interview
+      try {
+        const interviewData = {
+          user_id: user.id,
+          candidate_name: validatedData.candidateName,
+          position: 'General Interview',
+          status: 'in_progress'
+        }
 
-      const interview = await interviewService.createInterview(interviewData)
-      console.log('Interview created:', interview.id)
+        interview = await interviewService.createInterview(interviewData)
+        console.log('Interview created:', interview.id)
+      } catch (interviewError) {
+        console.error('Interview creation error:', interviewError)
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to create interview' 
+          },
+          { status: 500 }
+        )
+      }
 
       // Create session with settings and required fields
       const sessionToken = Math.random().toString(36).substring(2)
       console.log('Creating session with token:', sessionToken)
       
-      const sessionData = {
-        interview_id: interview.id,
-        session_token: sessionToken,
-        status: 'active',
-        current_question_index: 0,
-        total_questions: 5,
-        settings: validatedData.settings
-      }
-      console.log('Session data:', sessionData)
+      let session
+      try {
+        const sessionData = {
+          interview_id: interview.id,
+          session_token: sessionToken,
+          status: 'active',
+          current_question_index: 0,
+          total_questions: 5,
+          settings: validatedData.settings
+        }
+        console.log('Session data:', sessionData)
 
-      const session = await sessionService.createSession(sessionData)
-      console.log('Session created:', session.id)
+        session = await sessionService.createSession(sessionData)
+        console.log('Session created:', session.id)
+      } catch (sessionError) {
+        console.error('Session creation error:', sessionError)
+        console.error('Session error details:', {
+          message: sessionError.message,
+          stack: sessionError.stack,
+          name: sessionError.name
+        })
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to create session',
+            details: sessionError.message
+          },
+          { status: 500 }
+        )
+      }
 
       // Generate first question using AI
       console.log('Generating first question...')
       console.log('AI Service available:', !!enhancedAIService)
       console.log('Environment check - GEMINI API KEY:', !!process.env.GOOGLE_GEMINI_API_KEY)
       
+      let firstQuestion
       try {
-        const firstQuestion = await enhancedAIService.generateInterviewQuestion(
+        firstQuestion = await enhancedAIService.generateInterviewQuestion(
           'General interview context',
           [],
           { name: validatedData.candidateName },
@@ -96,24 +138,13 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         })
         
         // Use fallback question if AI fails
-        const fallbackQuestion = {
+        firstQuestion = {
           question: "Tell me about your experience and why you're interested in this position.",
           category: "general",
           difficulty: "medium",
           timeLimit: 120
         }
-        console.log('Using fallback question:', fallbackQuestion.question)
-        
-        return NextResponse.json({
-          success: true,
-          data: {
-            interviewId: interview.id,
-            sessionToken: sessionToken,
-            sessionId: session.id,
-            settings: validatedData.settings,
-            firstQuestion: fallbackQuestion
-          }
-        })
+        console.log('Using fallback question:', firstQuestion.question)
       }
 
       // Session is already created with correct question index, no need to update
