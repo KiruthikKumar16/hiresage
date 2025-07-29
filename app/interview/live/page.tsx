@@ -127,7 +127,30 @@ export default function LiveInterview() {
         setSession(data.data)
         setCurrentQuestion(data.data.firstQuestion.question)
         setTimeRemaining(data.data.firstQuestion.timeLimit)
-        await initializeMedia()
+        
+        // Try to initialize media with retry
+        let mediaInitialized = false
+        let retryCount = 0
+        const maxRetries = 3
+        
+        while (!mediaInitialized && retryCount < maxRetries) {
+          try {
+            await initializeMedia()
+            mediaInitialized = true
+          } catch (error: any) {
+            retryCount++
+            console.log(`Media initialization attempt ${retryCount} failed:`, error)
+            
+            if (retryCount >= maxRetries) {
+              // If media fails, still allow the interview to proceed without video/audio
+              toast.warning('Media access failed, but interview can proceed with text input only.')
+              setError('Media access failed. You can still participate in the interview using text input.')
+            } else {
+              // Wait before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000))
+            }
+          }
+        }
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to start interview')
@@ -143,7 +166,8 @@ export default function LiveInterview() {
 
   const initializeMedia = async () => {
     try {
-      const stream = await navigator.getUserMedia({
+      // Use modern MediaDevices API
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: isVideoEnabled,
         audio: isAudioEnabled
       })
@@ -152,6 +176,8 @@ export default function LiveInterview() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        // Ensure video plays
+        videoRef.current.play().catch(console.error)
       }
 
       // Initialize speech recognition
@@ -182,10 +208,23 @@ export default function LiveInterview() {
           console.error('Speech recognition error:', event.error)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing media devices:', error)
-      toast.error('Failed to access camera/microphone')
-      setError('Camera/microphone access denied. Please allow access and refresh the page.')
+      
+      // Provide more specific error messages
+      if (error.name === 'NotAllowedError') {
+        toast.error('Camera/microphone access denied. Please allow access in your browser settings.')
+        setError('Camera/microphone access denied. Please allow access in your browser settings and refresh the page.')
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No camera or microphone found.')
+        setError('No camera or microphone detected. Please connect a device and refresh the page.')
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('Media devices not supported in this browser.')
+        setError('Media devices are not supported in this browser. Please use a modern browser.')
+      } else {
+        toast.error('Failed to access camera/microphone')
+        setError('Camera/microphone access failed. Please check your device permissions and refresh the page.')
+      }
     }
   }
 
@@ -440,6 +479,22 @@ export default function LiveInterview() {
             <h2 className="text-xl font-semibold mb-2">Interview Error</h2>
             <p className="text-slate-300 mb-4">{error}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              {error.includes('Camera/microphone') && (
+                <Button 
+                  onClick={async () => {
+                    setError(null)
+                    try {
+                      await initializeMedia()
+                      toast.success('Media access granted!')
+                    } catch (mediaError) {
+                      setError('Media access still failed. You can continue with text input only.')
+                    }
+                  }} 
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Retry Media Access
+                </Button>
+              )}
               <Button onClick={startInterview} className="bg-blue-600 hover:bg-blue-700">
                 Try Again
               </Button>
