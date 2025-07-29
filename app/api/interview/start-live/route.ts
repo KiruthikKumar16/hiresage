@@ -57,7 +57,7 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
       const interview = await interviewService.createInterview(interviewData)
       console.log('Interview created:', interview.id)
 
-      // Create session with settings
+      // Create session with settings and required fields
       const sessionToken = Math.random().toString(36).substring(2)
       console.log('Creating session with token:', sessionToken)
       
@@ -65,6 +65,8 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         interview_id: interview.id,
         session_token: sessionToken,
         status: 'active',
+        current_question_index: 0,
+        total_questions: 5,
         settings: validatedData.settings
       }
       console.log('Session data:', sessionData)
@@ -82,13 +84,8 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
       )
       console.log('First question generated:', firstQuestion.question)
 
-      // Update session with first question (not interview)
-      console.log('Updating session with first question...')
-      await sessionService.updateSession(session.id, {
-        current_question_index: 0,
-        total_questions: 5 // Default to 5 questions
-      })
-      console.log('Session updated successfully')
+      // Session is already created with correct question index, no need to update
+      console.log('Session setup completed successfully')
 
       return NextResponse.json({
         success: true,
