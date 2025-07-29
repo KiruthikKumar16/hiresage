@@ -35,7 +35,8 @@ import {
   Timer,
   Target,
   Award,
-  Zap
+  Zap,
+  AlertTriangle
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -77,116 +78,71 @@ export default function Dashboard() {
   const { user, subscription, signOut } = useAuth()
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    if (user) {
+      loadDashboardData()
+    }
+  }, [user])
 
   const loadDashboardData = async () => {
     try {
-      // Simulate API call with realistic data
-      const mockData: DashboardData = {
-        totalInterviews: 24,
-        completedInterviews: 18,
-        pendingInterviews: 6,
-        averageScore: 85,
-        recentInterviews: [
-          {
-            id: "1",
-            candidateName: "Sarah Johnson",
-            candidateEmail: "sarah.johnson@email.com",
-            position: "Frontend Developer",
-            date: "2024-01-15",
-            duration: 45,
-            status: "completed",
-            score: 92,
-            questions: 8,
-            feedback: "Excellent technical skills and communication. Strong problem-solving abilities.",
-            recordingUrl: "/recordings/interview-1.mp4",
-            transcriptUrl: "/transcripts/interview-1.pdf"
-          },
-          {
-            id: "2", 
-            candidateName: "Michael Chen",
-            candidateEmail: "michael.chen@email.com",
-            position: "Backend Engineer",
-            date: "2024-01-14",
-            duration: 52,
-            status: "completed",
-            score: 78,
-            questions: 10,
-            feedback: "Good technical knowledge but needs improvement in system design.",
-            recordingUrl: "/recordings/interview-2.mp4",
-            transcriptUrl: "/transcripts/interview-2.pdf"
-          },
-          {
-            id: "3",
-            candidateName: "Emily Davis",
-            candidateEmail: "emily.davis@email.com",
-            position: "Product Manager",
-            date: "2024-01-16",
-            duration: 0,
-            status: "scheduled",
-            score: 0,
-            questions: 0,
-            feedback: ""
-          },
-          {
-            id: "4",
-            candidateName: "David Wilson",
-            candidateEmail: "david.wilson@email.com",
-            position: "DevOps Engineer",
-            date: "2024-01-13",
-            duration: 38,
-            status: "completed",
-            score: 88,
-            questions: 7,
-            feedback: "Strong infrastructure knowledge and automation skills.",
-            recordingUrl: "/recordings/interview-4.mp4",
-            transcriptUrl: "/transcripts/interview-4.pdf"
-          }
-        ],
-        upcomingInterviews: [
-          {
-            id: "5",
-            candidateName: "Lisa Anderson",
-            candidateEmail: "lisa.anderson@email.com",
-            position: "UX Designer",
-            date: "2024-01-17",
-            duration: 0,
-            status: "scheduled",
-            score: 0,
-            questions: 0,
-            feedback: ""
-          },
-          {
-            id: "6",
-            candidateName: "James Brown",
-            candidateEmail: "james.brown@email.com",
-            position: "Data Scientist",
-            date: "2024-01-18",
-            duration: 0,
-            status: "scheduled",
-            score: 0,
-            questions: 0,
-            feedback: ""
-          }
-        ],
+      setLoading(true)
+      setError(null)
+
+      // Fetch dashboard stats
+      const statsResponse = await fetch('/api/dashboard/stats')
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch dashboard stats')
+      }
+      const statsData = await statsResponse.json()
+
+      // Fetch recent interviews
+      const interviewsResponse = await fetch('/api/interviews/recent')
+      if (!interviewsResponse.ok) {
+        throw new Error('Failed to fetch recent interviews')
+      }
+      const interviewsData = await interviewsResponse.json()
+
+      // Transform data to match interface
+      const transformedData: DashboardData = {
+        totalInterviews: statsData.stats.totalInterviews,
+        completedInterviews: statsData.stats.completedInterviews,
+        pendingInterviews: statsData.stats.totalInterviews - statsData.stats.completedInterviews,
+        averageScore: statsData.stats.averageScore,
+        recentInterviews: interviewsData.interviews.map((interview: any) => ({
+          id: interview.id,
+          candidateName: interview.candidateName,
+          candidateEmail: 'candidate@example.com', // Would come from user data
+          position: interview.position,
+          date: new Date(interview.startTime).toLocaleDateString(),
+          duration: interview.duration || 0,
+          status: interview.status,
+          score: interview.overallScore || 0,
+          questions: 5, // Default for now
+          feedback: '',
+          recordingUrl: undefined,
+          transcriptUrl: undefined
+        })),
+        upcomingInterviews: [], // Would be fetched from separate endpoint
         performanceMetrics: {
-          totalQuestions: 156,
-          averageDuration: 42,
-          successRate: 75,
-          topSkills: ["JavaScript", "React", "Node.js", "Python", "AWS"]
+          totalQuestions: statsData.stats.totalInterviews * 5, // Estimate
+          averageDuration: 45, // Default
+          successRate: statsData.stats.completedInterviews > 0 ? 
+            Math.round((statsData.stats.completedInterviews / statsData.stats.totalInterviews) * 100) : 0,
+          topSkills: ['JavaScript', 'React', 'Node.js', 'Python', 'AWS'] // Default
         }
       }
-      
-      setDashboardData(mockData)
+
+      setDashboardData(transformedData)
     } catch (error) {
       console.error("Failed to load dashboard data:", error)
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data')
       toast.error("Failed to load dashboard data")
     } finally {
       setLoading(false)
@@ -204,8 +160,7 @@ export default function Dashboard() {
 
   const startNewInterview = () => {
     toast.info("Starting new interview...")
-    // Navigate to interview page
-    window.location.href = '/interview/new'
+    window.location.href = '/interview/live'
   }
 
   const getStatusColor = (status: string) => {
@@ -241,6 +196,23 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
           <p className="text-slate-300">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold mb-2">Error Loading Dashboard</h2>
+            <p className="text-slate-300 mb-4">{error}</p>
+            <Button onClick={loadDashboardData} className="bg-blue-600 hover:bg-blue-700">
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -371,7 +343,7 @@ export default function Dashboard() {
                   <Users className="h-4 w-4 text-blue-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData?.totalInterviews}</div>
+                  <div className="text-2xl font-bold text-white">{dashboardData?.totalInterviews || 0}</div>
                   <p className="text-xs text-slate-400">All time</p>
                 </CardContent>
               </Card>
@@ -382,7 +354,7 @@ export default function Dashboard() {
                   <CheckCircle className="h-4 w-4 text-green-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData?.completedInterviews}</div>
+                  <div className="text-2xl font-bold text-white">{dashboardData?.completedInterviews || 0}</div>
                   <p className="text-xs text-slate-400">Successfully finished</p>
                 </CardContent>
               </Card>
@@ -393,7 +365,7 @@ export default function Dashboard() {
                   <Clock className="h-4 w-4 text-yellow-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData?.pendingInterviews}</div>
+                  <div className="text-2xl font-bold text-white">{dashboardData?.pendingInterviews || 0}</div>
                   <p className="text-xs text-slate-400">Awaiting completion</p>
                 </CardContent>
               </Card>
@@ -404,7 +376,7 @@ export default function Dashboard() {
                   <TrendingUp className="h-4 w-4 text-purple-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData?.averageScore}%</div>
+                  <div className="text-2xl font-bold text-white">{dashboardData?.averageScore || 0}%</div>
                   <p className="text-xs text-slate-400">Performance metric</p>
                 </CardContent>
               </Card>
@@ -438,32 +410,39 @@ export default function Dashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {dashboardData?.recentInterviews.slice(0, 3).map((interview) => (
-                          <div key={interview.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <User className="w-4 h-4 text-white" />
+                      {dashboardData?.recentInterviews.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400">
+                          <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No interviews yet. Start your first interview to see results here.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {dashboardData?.recentInterviews.slice(0, 3).map((interview) => (
+                            <div key={interview.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <User className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-white">{interview.candidateName}</p>
+                                  <p className="text-xs text-slate-400">{interview.position}</p>
+                                  <p className="text-xs text-slate-400">{interview.date}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-white">{interview.candidateName}</p>
-                                <p className="text-xs text-slate-400">{interview.position}</p>
-                                <p className="text-xs text-slate-400">{interview.date}</p>
+                              <div className="text-right">
+                                <Badge 
+                                  className={`${getStatusColor(interview.status)} text-white`}
+                                >
+                                  {interview.status}
+                                </Badge>
+                                {interview.score > 0 && (
+                                  <p className="text-xs text-slate-400 mt-1">Score: {interview.score}%</p>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <Badge 
-                                className={`${getStatusColor(interview.status)} text-white`}
-                              >
-                                {interview.status}
-                              </Badge>
-                              {interview.score > 0 && (
-                                <p className="text-xs text-slate-400 mt-1">Score: {interview.score}%</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -484,14 +463,18 @@ export default function Dashboard() {
                           <Plus className="w-4 h-4 mr-2" />
                           Start New Interview
                         </Button>
-                        <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50">
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Reports
-                        </Button>
-                        <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50">
-                          <Settings className="w-4 h-4 mr-2" />
-                          Settings
-                        </Button>
+                        <Link href="/reports">
+                          <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50">
+                            <FileText className="w-4 h-4 mr-2" />
+                            View Reports
+                          </Button>
+                        </Link>
+                        <Link href="/settings">
+                          <Button variant="outline" className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 bg-slate-700/50">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Settings
+                          </Button>
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>
@@ -508,19 +491,19 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.totalQuestions}</div>
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.totalQuestions || 0}</div>
                         <p className="text-sm text-slate-400">Total Questions</p>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.averageDuration}min</div>
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.averageDuration || 0}min</div>
                         <p className="text-sm text-slate-400">Avg Duration</p>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.successRate}%</div>
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.successRate || 0}%</div>
                         <p className="text-sm text-slate-400">Success Rate</p>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.topSkills.length}</div>
+                        <div className="text-2xl font-bold text-white mb-2">{dashboardData?.performanceMetrics.topSkills.length || 0}</div>
                         <p className="text-sm text-slate-400">Top Skills</p>
                       </div>
                     </div>
@@ -563,63 +546,70 @@ export default function Dashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {filteredInterviews.map((interview) => (
-                        <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
-                              <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
-                              <p className="text-xs text-slate-400">{interview.position}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-sm text-white">{interview.date}</p>
-                              {interview.duration > 0 && (
-                                <p className="text-xs text-slate-400">{interview.duration} min</p>
-                              )}
-                            </div>
-                            <Badge className={`${getStatusColor(interview.status)} text-white`}>
-                              {getStatusIcon(interview.status)}
-                              <span className="ml-1">{interview.status}</span>
-                            </Badge>
-                            {interview.score > 0 && (
-                              <div className="text-right">
-                                <p className="text-sm font-medium text-white">{interview.score}%</p>
-                                <p className="text-xs text-slate-400">Score</p>
+                    {filteredInterviews.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400">
+                        <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No interviews found. Start your first interview to see results here.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {filteredInterviews.map((interview) => (
+                          <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
                               </div>
-                            )}
-                            <div className="flex items-center space-x-2">
-                              {interview.status === 'scheduled' && (
-                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                                  <Play className="w-3 h-3 mr-1" />
-                                  Start
+                              <div>
+                                <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
+                                <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
+                                <p className="text-xs text-slate-400">{interview.position}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <div className="text-right">
+                                <p className="text-sm text-white">{interview.date}</p>
+                                {interview.duration > 0 && (
+                                  <p className="text-xs text-slate-400">{interview.duration} min</p>
+                                )}
+                              </div>
+                              <Badge className={`${getStatusColor(interview.status)} text-white`}>
+                                {getStatusIcon(interview.status)}
+                                <span className="ml-1">{interview.status}</span>
+                              </Badge>
+                              {interview.score > 0 && (
+                                <div className="text-right">
+                                  <p className="text-sm font-medium text-white">{interview.score}%</p>
+                                  <p className="text-xs text-slate-400">Score</p>
+                                </div>
+                              )}
+                              <div className="flex items-center space-x-2">
+                                {interview.status === 'scheduled' && (
+                                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                    <Play className="w-3 h-3 mr-1" />
+                                    Start
+                                  </Button>
+                                )}
+                                {interview.status === 'completed' && (
+                                  <>
+                                    <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      View
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                      <Download className="w-3 h-3 mr-1" />
+                                      Report
+                                    </Button>
+                                  </>
+                                )}
+                                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                  <MoreVertical className="w-3 h-3" />
                                 </Button>
-                              )}
-                              {interview.status === 'completed' && (
-                                <>
-                                  <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    View
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                    <Download className="w-3 h-3 mr-1" />
-                                    Report
-                                  </Button>
-                                </>
-                              )}
-                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                <MoreVertical className="w-3 h-3" />
-                              </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -633,45 +623,52 @@ export default function Dashboard() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {dashboardData?.upcomingInterviews.map((interview) => (
-                        <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
-                              <Clock className="w-5 h-5 text-white" />
+                    {dashboardData?.upcomingInterviews.length === 0 ? (
+                      <div className="text-center py-8 text-slate-400">
+                        <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No upcoming interviews scheduled.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {dashboardData?.upcomingInterviews.map((interview) => (
+                          <div key={interview.id} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
+                                <Clock className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
+                                <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
+                                <p className="text-xs text-slate-400">{interview.position}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="text-sm font-medium text-white">{interview.candidateName}</h3>
-                              <p className="text-xs text-slate-400">{interview.candidateEmail}</p>
-                              <p className="text-xs text-slate-400">{interview.position}</p>
+                            <div className="flex items-center space-x-4">
+                              <div className="text-right">
+                                <p className="text-sm text-white">{interview.date}</p>
+                                <p className="text-xs text-slate-400">Scheduled</p>
+                              </div>
+                              <Badge className="bg-yellow-600 text-white">
+                                <Clock className="w-4 h-4 mr-1" />
+                                Scheduled
+                              </Badge>
+                              <div className="flex items-center space-x-2">
+                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Start
+                                </Button>
+                                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                  <Edit className="w-3 h-3 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-sm text-white">{interview.date}</p>
-                              <p className="text-xs text-slate-400">Scheduled</p>
-                            </div>
-                            <Badge className="bg-yellow-600 text-white">
-                              <Clock className="w-4 h-4 mr-1" />
-                              Scheduled
-                            </Badge>
-                            <div className="flex items-center space-x-2">
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                                <Play className="w-3 h-3 mr-1" />
-                                Start
-                              </Button>
-                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                <Edit className="w-3 h-3 mr-1" />
-                                Edit
-                              </Button>
-                              <Button size="sm" variant="outline" className="border-slate-600 text-slate-300">
-                                <X className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -703,21 +700,28 @@ export default function Dashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        {dashboardData?.performanceMetrics.topSkills.map((skill, index) => (
-                          <div key={skill} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                                <span className="text-xs text-white font-bold">{index + 1}</span>
+                      {dashboardData?.performanceMetrics.topSkills.length === 0 ? (
+                        <div className="text-center py-8 text-slate-400">
+                          <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No skills data available yet.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {dashboardData?.performanceMetrics.topSkills.map((skill, index) => (
+                            <div key={skill} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <span className="text-xs text-white font-bold">{index + 1}</span>
+                                </div>
+                                <span className="text-sm text-white">{skill}</span>
                               </div>
-                              <span className="text-sm text-white">{skill}</span>
+                              <Badge className="bg-blue-600/20 text-blue-300 border-blue-500/30">
+                                {Math.floor(Math.random() * 20) + 80}%
+                              </Badge>
                             </div>
-                            <Badge className="bg-blue-600/20 text-blue-300 border-blue-500/30">
-                              {Math.floor(Math.random() * 20) + 80}%
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
