@@ -80,56 +80,9 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         )
       }
 
-      // Create session with minimal required fields
-      const sessionToken = Math.random().toString(36).substring(2)
-      console.log('Creating session with token:', sessionToken)
-      
-      let session
-      try {
-        // Try with minimal fields first
-        const sessionData = {
-          interview_id: interview.id,
-          session_token: sessionToken,
-          status: 'active'
-        }
-        console.log('Session data (minimal):', sessionData)
-
-        session = await sessionService.createSession(sessionData)
-        console.log('Session created:', session.id)
-      } catch (sessionError) {
-        console.error('Session creation error:', sessionError)
-        console.error('Session error details:', {
-          message: sessionError.message,
-          stack: sessionError.stack,
-          name: sessionError.name
-        })
-        
-        // Try alternative approach - create session without settings
-        try {
-          console.log('Trying alternative session creation...')
-          const alternativeSessionData = {
-            interview_id: interview.id,
-            session_token: sessionToken,
-            status: 'active',
-            current_question_index: 0,
-            total_questions: 5
-          }
-          console.log('Alternative session data:', alternativeSessionData)
-          
-          session = await sessionService.createSession(alternativeSessionData)
-          console.log('Alternative session created:', session.id)
-        } catch (altSessionError) {
-          console.error('Alternative session creation also failed:', altSessionError)
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'Failed to create session',
-              details: altSessionError.message
-            },
-            { status: 500 }
-          )
-        }
-      }
+      // Skip session creation for now - just use interview ID as session token
+      const sessionToken = interview.id // Use interview ID as session token
+      console.log('Using interview ID as session token:', sessionToken)
 
       // Generate first question using AI
       console.log('Generating first question...')
@@ -163,15 +116,14 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         console.log('Using fallback question:', firstQuestion.question)
       }
 
-      // Session is already created with correct question index, no need to update
-      console.log('Session setup completed successfully')
+      console.log('Interview setup completed successfully')
 
       return NextResponse.json({
         success: true,
         data: {
           interviewId: interview.id,
           sessionToken: sessionToken,
-          sessionId: session.id,
+          sessionId: interview.id, // Use interview ID as session ID
           settings: validatedData.settings,
           firstQuestion: {
             question: firstQuestion.question,
