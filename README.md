@@ -1,280 +1,244 @@
-# JoCruit AI - Production-Ready AI Interview Platform
+# JoCruit AI - AI-Powered Interview Platform
 
-A fully functional, production-ready AI-powered interview platform with real-time emotion detection, cheating prevention, and comprehensive analytics.
+A production-ready AI interview platform with real-time video interviews, progressive questioning, and comprehensive analytics.
 
-## 🚀 **PRODUCTION STATUS**
+## 🚀 Features
 
-✅ **FULLY IMPLEMENTED & READY FOR DEPLOYMENT**
+### Core Features
+- **Live AI Interviews**: Real-time video interviews with progressive questioning
+- **AI Analysis**: Comprehensive analysis of responses, emotions, and cheating detection
+- **Enhanced Dashboard**: Real-time analytics and performance metrics
+- **Role-Based Access**: System admin, university admin, and candidate roles
+- **Report Generation**: Detailed interview reports and batch analytics
+- **OAuth Authentication**: Google and GitHub login integration
 
-- ✅ **Real Supabase Database Integration**
-- ✅ **Google/GitHub OAuth Authentication**
-- ✅ **Gemini 2.0 Flash AI Integration**
-- ✅ **Role-Based Access Control (RBAC)**
-- ✅ **Complete API Endpoints**
-- ✅ **Real Interview System**
-- ✅ **Production-Ready Error Handling**
+### Technical Features
+- **Next.js 15**: Latest React framework with App Router
+- **TypeScript**: Full type safety
+- **Supabase**: PostgreSQL database with real-time features
+- **Google Gemini AI**: Advanced AI for interview questions and analysis
+- **Tailwind CSS**: Modern, responsive design
+- **Shadcn/ui**: Beautiful, accessible components
 
-## 🛠️ Tech Stack
+## 📋 Prerequisites
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Shadcn/ui
-- **Authentication**: Custom OAuth (Google/GitHub) with Supabase
-- **AI Integration**: Google Gemini 2.0 Flash (FREE)
-- **Database**: Supabase PostgreSQL
-- **Deployment**: Vercel
-- **Package Manager**: pnpm
-
-## 📦 Installation & Setup
-
-### Prerequisites
-
-- Node.js 20.x
-- pnpm (recommended)
+- Node.js 20.x or higher
+- pnpm package manager
 - Supabase account
-- Google Gemini API key (FREE)
-- Google OAuth credentials (optional)
-- GitHub OAuth credentials (optional)
+- Google Cloud Console access (for Gemini API)
+- GitHub account (for OAuth)
 
-### 1. Clone and Install
+## 🛠️ Quick Start
 
+### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/jocruit.git
-cd jocruit
+git clone https://github.com/your-username/jocruit-ai.git
+cd jocruit-ai
+```
+
+### 2. Install Dependencies
+```bash
 pnpm install
 ```
 
-### 2. Environment Variables
-
-Create `.env.local`:
-
+### 3. Environment Setup
+Create a `.env.local` file:
 ```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Google Gemini API (FREE)
-GEMINI_API_KEY=your-gemini-api-key
+# Google Gemini AI
+GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 
-# Google OAuth (Optional)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# OAuth
+GOOGLE_ID=your_google_oauth_client_id
+GOOGLE_SECRET=your_google_oauth_client_secret
+GITHUB_ID=your_github_oauth_client_id
+GITHUB_SECRET=your_github_oauth_client_secret
 
-# GitHub OAuth (Optional)
-GITHUB_ID=your-github-client-id
-GITHUB_SECRET=your-github-client-secret
-
-# Next.js Configuration
-NEXTAUTH_SECRET=your-nextauth-secret-key
+# Next.js
 NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_key
 ```
 
-### 3. Database Setup
-
-1. **Create Supabase Project**:
-   - Go to [Supabase](https://supabase.com)
-   - Create new project
-   - Copy Project URL and Anon Key
-
-2. **Run Database Schema**:
-   - Go to SQL Editor in Supabase Dashboard
-   - Copy and paste contents of `supabase-schema.sql`
-   - Execute the SQL
-
-3. **Configure Authentication**:
-   - Go to Authentication → Settings
-   - Add Site URL: `http://localhost:3000`
-   - Add Redirect URLs: `http://localhost:3000/auth/callback`
-
-### 4. Get API Keys
-
-#### Google Gemini API (FREE)
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with Google account
-3. Click "Create API Key"
-4. Copy to `.env.local`
-
-#### Google OAuth (Optional)
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create project and enable Google+ API
-3. Create OAuth 2.0 credentials
-4. Add authorized redirect URIs
-
-#### GitHub OAuth (Optional)
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Create new OAuth App
-3. Set Authorization callback URL
+### 4. Database Setup
+1. Create a Supabase project
+2. Run the database schema: `supabase-schema-enhanced.sql`
+3. Set up Row Level Security (RLS) policies
 
 ### 5. Run Development Server
-
 ```bash
 pnpm dev
 ```
 
-Navigate to [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Vercel Deployment (Recommended)
 
-1. **Connect Repository**:
+1. **Connect Repository**
+   - Push code to GitHub
+   - Connect repository to Vercel
+   - Import project in Vercel dashboard
+
+2. **Environment Variables**
+   - Add all variables from `.env.local` to Vercel
+   - Update `NEXTAUTH_URL` to your Vercel domain
+
+3. **Build Settings**
+   - Framework Preset: Next.js
+   - Build Command: `pnpm build`
+   - Output Directory: `.next`
+   - Install Command: `pnpm install`
+
+4. **Deploy**
+   - Commit and push changes
+   - Vercel will auto-deploy
+
+### Manual Deployment
+
+1. **Build Application**
    ```bash
-   vercel --prod
+   pnpm build
    ```
 
-2. **Set Environment Variables** in Vercel Dashboard:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `GEMINI_API_KEY`
-   - `GOOGLE_CLIENT_ID` (if using Google OAuth)
-   - `GOOGLE_CLIENT_SECRET` (if using Google OAuth)
-   - `GITHUB_ID` (if using GitHub OAuth)
-   - `GITHUB_SECRET` (if using GitHub OAuth)
-   - `NEXTAUTH_SECRET`
-   - `NEXTAUTH_URL` (your production URL)
-
-3. **Update Supabase Auth Settings**:
-   - Add your Vercel domain to Site URL
-   - Update redirect URLs
-
-### Other Platforms
-
-- **Netlify**: Set build command to `pnpm build`
-- **Railway**: Auto-detects Next.js
-- **AWS/GCP**: Use Docker or serverless
-
-## 🎯 Features
-
-### ✅ **Fully Implemented**
-
-- **Real AI Interviews**: Gemini 2.0 Flash powered interviews
-- **OAuth Authentication**: Google and GitHub sign-in
-- **Role-Based Access**: System Admin, University/Enterprise Admin, Candidate
-- **Database Integration**: Supabase PostgreSQL with RLS
-- **Interview System**: Start, conduct, and complete interviews
-- **Subscription Management**: Free trial and paid plans
-- **Analytics & Reporting**: Comprehensive system reports
-- **Error Handling**: Production-ready error management
-
-### 🔄 **In Development**
-
-- **Video Interview Features**: Real-time emotion detection
-- **Cheating Detection**: Advanced security algorithms
-- **Speech Recognition**: Real-time speech-to-text
-- **Payment Processing**: Stripe integration
+2. **Start Production Server**
+   ```bash
+   pnpm start
+   ```
 
 ## 📊 API Endpoints
 
 ### Authentication
-- `POST /api/auth` - OAuth sign-in/sign-out
-- `GET /api/auth?action=session` - Get current session
-- `GET /api/auth?action=providers` - Get available providers
+- `POST /api/auth/signin` - OAuth sign-in
+- `POST /api/auth/signout` - Sign out
+- `GET /api/auth/session` - Get session
 
-### System Admin
-- `POST /api/system/clients` - Create organization
-- `GET /api/system/clients` - List all organizations
-- `POST /api/system/questions` - Create interview question
-- `GET /api/system/questions` - List questions with filters
-- `PUT /api/system/questions` - Update question
-- `DELETE /api/system/questions` - Delete question
-- `GET /api/system/reports` - Generate system reports
+### Interviews
+- `POST /api/interview/start-live` - Start live interview
+- `POST /api/interview/answer` - Submit answer
+- `POST /api/interview/next-question` - Generate next question
+- `POST /api/interview/submit-live` - Complete interview
 
-### Candidate
-- `POST /api/candidate/interview` - Start interview
-- `GET /api/candidate/interview` - Get interview details
-- `PUT /api/candidate/interview` - Submit answer
+### AI Analysis
+- `POST /api/ai/analyze` - Analyze response content
 
-### AI Integration
-- `POST /api/ai/interview` - AI interview responses
-- `POST /api/ai/analyze` - Response analysis
+### Dashboard
+- `GET /api/dashboard/stats` - Get dashboard statistics
+- `GET /api/interviews/recent` - Get recent interviews
 
-## 🗄️ Database Schema
+### Reports
+- `POST /api/report/generate` - Generate reports
+- `POST /api/email/batch-report` - Send batch emails
 
-### Core Tables
-- `users` - User accounts with roles
-- `subscriptions` - Plan and usage tracking
-- `interviews` - Interview sessions
-- `messages` - Interview conversation
-- `questions` - Interview question bank
+### Admin
+- `GET /api/system/dashboard` - System admin dashboard
+- `GET /api/uni/dashboard` - University admin dashboard
 
-### Security
-- Row Level Security (RLS) enabled
-- Role-based access policies
-- Automatic timestamp triggers
+## 🔧 Configuration
 
-## 🔐 Security Features
+### OAuth Setup
 
-- **OAuth Authentication**: No password storage
-- **Role-Based Access Control**: Granular permissions
-- **Row Level Security**: Database-level security
-- **Input Validation**: Zod schema validation
-- **Error Handling**: Secure error responses
-- **Session Management**: Secure session storage
+#### Google OAuth
+1. Go to Google Cloud Console > APIs & Services > Credentials
+2. Create OAuth 2.0 Client ID
+3. Add redirect URIs:
+   - `http://localhost:3000/auth/callback` (development)
+   - `https://your-domain.vercel.app/auth/callback` (production)
 
-## 📈 Analytics & Reporting
+#### GitHub OAuth
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Create new OAuth App
+3. Set callback URL:
+   - `http://localhost:3000/auth/callback` (development)
+   - `https://your-domain.vercel.app/auth/callback` (production)
 
-### System Admin Reports
-- **Overview**: System-wide statistics
-- **Organizations**: Client management
-- **Interviews**: Interview analytics
-- **Revenue**: Financial reporting
-- **Questions**: Question bank management
+### Database Schema
 
-### Real-time Features
-- **Live Interview Tracking**: Real-time progress
-- **AI Response Generation**: Dynamic questions
-- **Emotion Analysis**: Facial expression detection
-- **Cheating Detection**: Security monitoring
+The application uses the following main tables:
+- `users` - User accounts and profiles
+- `interviews` - Interview sessions and results
+- `messages` - Interview conversation messages
+- `subscriptions` - User subscription plans
+- `reports` - Generated interview reports
+- `ai_analysis_logs` - AI analysis tracking
 
-## 🎨 UI/UX Features
+## 🎯 Usage
 
-- **Modern Design**: Clean, professional interface
-- **Responsive Layout**: Mobile-friendly design
-- **Dark/Light Theme**: User preference support
-- **Loading States**: Smooth user experience
-- **Error Handling**: User-friendly error messages
-- **Toast Notifications**: Real-time feedback
+### For Candidates
+1. Sign in with Google/GitHub
+2. Navigate to dashboard
+3. Click "Start Interview"
+4. Complete AI-powered interview
+5. View results and analytics
 
-## 🔧 Development
+### For Administrators
+1. Access admin dashboard
+2. View system-wide analytics
+3. Generate reports
+4. Manage user subscriptions
 
-### Scripts
-```bash
-pnpm dev          # Development server
-pnpm build        # Production build
-pnpm start        # Production server
-pnpm lint         # Code linting
-pnpm type-check   # TypeScript checking
-```
+## 🔒 Security
 
-### Code Structure
-```
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # User dashboard
-│   └── pricing/           # Pricing page
-├── components/            # React components
-├── lib/                   # Utilities and services
-├── supabase-schema.sql   # Database schema
-└── README.md             # This file
-```
+- **Role-Based Access Control**: Different permissions for different user types
+- **Input Validation**: All inputs validated with Zod
+- **Session Management**: Secure session handling
+- **CORS Protection**: Proper CORS configuration
+- **Environment Variables**: Secure secret management
 
-## 🚀 **Ready for Production**
+## 📈 Performance
 
-This application is **fully implemented** and ready for deployment with:
+- **Code Splitting**: Automatic code splitting for optimal loading
+- **Image Optimization**: Next.js image optimization
+- **Caching**: Strategic caching for better performance
+- **Database Indexing**: Optimized database queries
 
-- ✅ Real database integration
-- ✅ Production-ready authentication
-- ✅ Complete API endpoints
-- ✅ Error handling and validation
-- ✅ Security best practices
-- ✅ Scalable architecture
+## 🐛 Troubleshooting
 
-**No simulated data or placeholder functionality remains.**
+### Common Issues
+
+1. **OAuth Redirect Errors**
+   - Verify redirect URIs in OAuth provider settings
+   - Check environment variables
+   - Ensure HTTPS in production
+
+2. **Database Connection Issues**
+   - Verify Supabase URL and keys
+   - Check RLS policies
+   - Test connection with service role
+
+3. **AI Service Errors**
+   - Verify Gemini API key
+   - Check API quotas
+   - Monitor response times
+
+4. **Build Failures**
+   - Check Node.js version (20.x required)
+   - Verify all dependencies installed
+   - Check TypeScript errors
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📞 Support
 
-For deployment assistance or feature requests, please contact the development team.
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the documentation
+- Review troubleshooting guides
 
 ---
 
-**JoCruit AI** - Transforming the future of hiring with AI-powered interviews. 
+**Built with ❤️ using Next.js, Supabase, and Google Gemini AI** 

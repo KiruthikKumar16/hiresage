@@ -56,6 +56,7 @@ export default function EnhancedDashboard() {
   })
   const [recentInterviews, setRecentInterviews] = useState<RecentInterview[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -65,11 +66,16 @@ export default function EnhancedDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true)
+      setError(null)
+
       // Fetch dashboard data based on user role
       const response = await fetch('/api/dashboard/stats')
       if (response.ok) {
         const data = await response.json()
         setStats(data.stats)
+      } else {
+        throw new Error('Failed to fetch dashboard stats')
       }
 
       // Fetch recent interviews
@@ -77,9 +83,12 @@ export default function EnhancedDashboard() {
       if (interviewsResponse.ok) {
         const data = await interviewsResponse.json()
         setRecentInterviews(data.interviews)
+      } else {
+        throw new Error('Failed to fetch recent interviews')
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      setError('Failed to load dashboard data. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -122,12 +131,29 @@ export default function EnhancedDashboard() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold mb-2">Error Loading Dashboard</h2>
+            <p className="text-slate-300 mb-4">{error}</p>
+            <Button onClick={fetchDashboardData} className="bg-blue-600 hover:bg-blue-700">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name}!</h1>
+          <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h1>
           <p className="text-slate-300">
             Here's what's happening with your AI interviews today.
           </p>
@@ -182,7 +208,7 @@ export default function EnhancedDashboard() {
             <CardContent>
               <div className="text-2xl font-bold text-white">{stats.interviewsRemaining}</div>
               <Progress 
-                value={(stats.totalInterviewsAllowed - stats.interviewsRemaining) / stats.totalInterviewsAllowed * 100} 
+                value={stats.totalInterviewsAllowed > 0 ? (stats.totalInterviewsAllowed - stats.interviewsRemaining) / stats.totalInterviewsAllowed * 100 : 0} 
                 className="mt-2"
               />
               <p className="text-xs text-slate-400 mt-1">
@@ -202,7 +228,7 @@ export default function EnhancedDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/interview/new">
+              <Link href="/interview/live">
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
                   <Video className="mr-2 h-4 w-4" />
                   Start Interview

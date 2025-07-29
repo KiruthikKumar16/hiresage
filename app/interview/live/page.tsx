@@ -21,6 +21,7 @@ import {
   Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 interface InterviewSession {
   interviewId: string
@@ -60,6 +61,8 @@ export default function LiveInterview() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [interviewComplete, setInterviewComplete] = useState(false)
   const [results, setResults] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -91,6 +94,9 @@ export default function LiveInterview() {
 
   const startInterview = async () => {
     try {
+      setIsInitializing(true)
+      setError(null)
+
       const response = await fetch('/api/interview/start-live', {
         method: 'POST',
         headers: {
@@ -98,7 +104,7 @@ export default function LiveInterview() {
         },
         body: JSON.stringify({
           userId: user?.id,
-          candidateName: user?.name,
+          candidateName: user?.name || 'Candidate',
           settings: {
             enableVideo: true,
             enableAudio: true,
@@ -114,11 +120,15 @@ export default function LiveInterview() {
         setTimeRemaining(data.data.firstQuestion.timeLimit)
         await initializeMedia()
       } else {
-        toast.error('Failed to start interview')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to start interview')
       }
     } catch (error) {
       console.error('Error starting interview:', error)
+      setError(error instanceof Error ? error.message : 'Failed to start interview')
       toast.error('Failed to start interview')
+    } finally {
+      setIsInitializing(false)
     }
   }
 
@@ -166,11 +176,15 @@ export default function LiveInterview() {
     } catch (error) {
       console.error('Error accessing media devices:', error)
       toast.error('Failed to access camera/microphone')
+      setError('Camera/microphone access denied. Please allow access and refresh the page.')
     }
   }
 
   const startRecording = async () => {
-    if (!streamRef.current) return
+    if (!streamRef.current) {
+      toast.error('No media stream available')
+      return
+    }
 
     try {
       const mediaRecorder = new MediaRecorder(streamRef.current)
@@ -185,7 +199,6 @@ export default function LiveInterview() {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/webm' })
-        // Handle audio blob for analysis
         console.log('Recording stopped, blob size:', blob.size)
       }
 
@@ -208,7 +221,10 @@ export default function LiveInterview() {
   }
 
   const handleAnswerSubmit = async () => {
-    if (!session || !transcript.trim()) return
+    if (!session || !transcript.trim()) {
+      toast.error('Please provide an answer before submitting')
+      return
+    }
 
     setIsProcessing(true)
     stopRecording()
@@ -224,70 +240,77 @@ export default function LiveInterview() {
           interviewId: session.interviewId,
           sessionId: session.sessionId,
           content: transcript,
-          emotionData: {}, // Mock emotion data
-          confidenceScore: 0.8, // Mock confidence score
-          cheatingFlags: [] // Mock cheating flags
+          emotionData: {},
+          confidenceScore: 0.8,
+          cheatingFlags: []
         })
       })
 
-      if (answerResponse.ok) {
-        const answerData = await answerResponse.json()
-        
-        // Analyze response
-        const analysisResponse = await fetch('/api/ai/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            interviewId: session.interviewId,
-            content: transcript,
-            context: currentQuestion,
-            analysisType: 'content',
-            emotionData: {},
-            faceData: {},
-            gazeData: {}
-          })
+      if (!answerResponse.ok) {
+        throw new Error('Failed to submit answer')
+      }
+
+      const answerData = await answerResponse.json()
+      
+      // Analyze response
+      const analysisResponse = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          interviewId: session.interviewId,
+          content: transcript,
+          context: currentQuestion,
+          analysisType: 'content',
+          emotionData: {},
+          faceData: {},
+          gazeData: {}
         })
+      })
 
-        if (analysisResponse.ok) {
-          const analysisData = await analysisResponse.json()
-          setAnalysis(analysisData.data.analysis)
-          
-          // Generate next question
-          const nextQuestionResponse = await fetch('/api/interview/next-question', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              interviewId: session.interviewId,
-              sessionId: session.sessionId,
-              previousQuestion: currentQuestion,
-              response: transcript,
-              analysis: analysisData.data.analysis
-            })
-          })
+      if (!analysisResponse.ok) {
+        throw new Error('Failed to analyze response')
+      }
 
-          if (nextQuestionResponse.ok) {
-            const nextQuestionData = await nextQuestionResponse.json()
-            setQuestionIndex(prev => prev + 1)
-            
-            if (nextQuestionData.data.nextQuestion) {
-              setCurrentQuestion(nextQuestionData.data.nextQuestion)
-              setTimeRemaining(nextQuestionData.data.timeLimit || 120)
-              setTranscript('')
-              setAnalysis(null)
-            } else {
-              // Interview complete
-              await completeInterview()
-            }
-          }
-        }
+      const analysisData = await analysisResponse.json()
+      setAnalysis(analysisData.data.analysis)
+      
+      // Generate next question
+      const nextQuestionResponse = await fetch('/api/interview/next-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          interviewId: session.interviewId,
+          sessionId: session.sessionId,
+          previousQuestion: currentQuestion,
+          response: transcript,
+          analysis: analysisData.data.analysis
+        })
+      })
+
+      if (!nextQuestionResponse.ok) {
+        throw new Error('Failed to generate next question')
+      }
+
+      const nextQuestionData = await nextQuestionResponse.json()
+      setQuestionIndex(prev => prev + 1)
+      
+      if (nextQuestionData.data.interviewComplete) {
+        // Interview complete
+        await completeInterview()
+      } else if (nextQuestionData.data.nextQuestion) {
+        setCurrentQuestion(nextQuestionData.data.nextQuestion)
+        setTimeRemaining(nextQuestionData.data.timeLimit || 120)
+        setTranscript('')
+        setAnalysis(null)
       }
     } catch (error) {
       console.error('Error submitting answer:', error)
       toast.error('Failed to submit answer')
+      setError(error instanceof Error ? error.message : 'Failed to submit answer')
     } finally {
       setIsProcessing(false)
     }
@@ -303,7 +326,7 @@ export default function LiveInterview() {
         body: JSON.stringify({
           interviewId: session?.interviewId,
           sessionId: session?.sessionId,
-          duration: 0 // Calculate actual duration
+          duration: 0
         })
       })
 
@@ -312,10 +335,13 @@ export default function LiveInterview() {
         setResults(data.data)
         setInterviewComplete(true)
         toast.success('Interview completed successfully!')
+      } else {
+        throw new Error('Failed to complete interview')
       }
     } catch (error) {
       console.error('Error completing interview:', error)
       toast.error('Failed to complete interview')
+      setError(error instanceof Error ? error.message : 'Failed to complete interview')
     }
   }
 
@@ -339,6 +365,37 @@ export default function LiveInterview() {
     }
   }
 
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold mb-2">Initializing Interview</h2>
+            <p className="text-slate-300">Setting up your AI interview session...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold mb-2">Interview Error</h2>
+            <p className="text-slate-300 mb-4">{error}</p>
+            <Button onClick={startInterview} className="bg-blue-600 hover:bg-blue-700">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (interviewComplete && results) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -356,22 +413,22 @@ export default function LiveInterview() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">{results.overallScore}%</div>
+                  <div className="text-3xl font-bold text-white mb-2">{results.overallScore || 0}%</div>
                   <div className="text-slate-400">Overall Score</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">{results.totalQuestions}</div>
+                  <div className="text-3xl font-bold text-white mb-2">{results.totalQuestions || 0}</div>
                   <div className="text-slate-400">Questions Answered</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-2">{results.cheatingFlags}</div>
+                  <div className="text-3xl font-bold text-white mb-2">{results.cheatingFlags || 0}</div>
                   <div className="text-slate-400">Cheating Flags</div>
                 </div>
               </div>
               
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Summary</h3>
-                <p className="text-slate-300">{results.summary}</p>
+                <p className="text-slate-300">{results.summary || 'Interview completed successfully.'}</p>
               </div>
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -383,7 +440,7 @@ export default function LiveInterview() {
                         <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
                         {strength}
                       </li>
-                    ))}
+                    )) || <li className="text-slate-400">No specific strengths identified</li>}
                   </ul>
                 </div>
                 <div>
@@ -394,16 +451,18 @@ export default function LiveInterview() {
                         <AlertTriangle className="h-4 w-4 text-yellow-400 mr-2" />
                         {weakness}
                       </li>
-                    ))}
+                    )) || <li className="text-slate-400">No specific areas identified</li>}
                   </ul>
                 </div>
               </div>
 
               <div className="mt-6 flex space-x-4">
-                <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-                  View Detailed Report
-                </Button>
-                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                <Link href="/dashboard/enhanced">
+                  <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                    Back to Dashboard
+                  </Button>
+                </Link>
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700" onClick={startInterview}>
                   Start New Interview
                 </Button>
               </div>
@@ -497,7 +556,7 @@ export default function LiveInterview() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-300 mb-4">{currentQuestion}</p>
+                <p className="text-slate-300 mb-4">{currentQuestion || 'Loading question...'}</p>
                 <div className="flex items-center justify-between">
                   <Badge className="bg-blue-500">Question {questionIndex + 1}/5</Badge>
                   <div className="flex items-center space-x-2">
@@ -540,15 +599,15 @@ export default function LiveInterview() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Confidence:</span>
-                      <span className="text-white">{Math.round(analysis.confidenceScore * 100)}%</span>
+                      <span className="text-white">{Math.round((analysis.confidenceScore || 0) * 100)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Truthfulness:</span>
-                      <span className="text-white">{Math.round(analysis.truthfulness * 100)}%</span>
+                      <span className="text-white">{Math.round((analysis.truthfulness || 0) * 100)}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Relevance:</span>
-                      <span className="text-white">{Math.round(analysis.relevance * 100)}%</span>
+                      <span className="text-white">{Math.round((analysis.relevance || 0) * 100)}%</span>
                     </div>
                     {analysis.suggestions?.length > 0 && (
                       <div className="mt-3">
