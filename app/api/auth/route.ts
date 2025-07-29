@@ -9,9 +9,14 @@ export async function GET(request: NextRequest) {
   if (action === 'session') {
     const sessionId = request.cookies.get('session-id')?.value
     
+    console.log('Session check - sessionId:', sessionId)
+    
     if (sessionId) {
       const session = sessionStore.get(sessionId)
+      console.log('Session found:', !!session, 'expires:', session?.expires)
+      
       if (session && session.expires > new Date()) {
+        console.log('Valid session found for user:', session.user?.email)
         return NextResponse.json({
           user: session.user,
           subscription: session.subscription,
@@ -19,10 +24,12 @@ export async function GET(request: NextRequest) {
         })
       } else if (session && session.expires <= new Date()) {
         // Session expired, clean it up
+        console.log('Session expired, cleaning up')
         sessionStore.delete(sessionId)
       }
     }
     
+    console.log('No valid session found')
     return NextResponse.json({ user: null })
   }
 
@@ -51,6 +58,8 @@ export async function POST(request: NextRequest) {
 
     if (action === 'signin') {
       if (provider === 'google' || provider === 'github') {
+        console.log('Processing OAuth signin for:', email)
+        
         // Try to find user by email
         let { data: user, error: userError } = await supabase
           .from('users')
@@ -64,6 +73,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (!user) {
+          console.log('Creating new user for:', email)
           // Create new user with candidate role
           const { data: newUser, error: createError } = await supabase
             .from('users')
@@ -82,6 +92,7 @@ export async function POST(request: NextRequest) {
           }
 
           user = newUser
+          console.log('New user created:', user.id)
         }
 
         // Check if user has active subscription, create free trial if not
@@ -98,20 +109,19 @@ export async function POST(request: NextRequest) {
         }
 
         if (!subscription) {
+          console.log('Creating free trial subscription for user:', user.id)
           // Create free trial subscription
           const { data: newSubscription, error: createSubError } = await supabase
             .from('subscriptions')
             .insert([{
               user_id: user.id,
-              plan_id: 'free-trial',
+              plan_id: 'free_trial',
               plan_name: 'Free Trial',
               interviews_remaining: 1,
               total_interviews: 1,
               price_per_interview: 0,
               status: 'active',
-              payment_status: 'completed',
-              trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+              payment_status: 'completed'
             }])
             .select()
             .single()
@@ -131,15 +141,17 @@ export async function POST(request: NextRequest) {
           subscription,
           expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
         }
+        
+        console.log('Creating session:', sessionId, 'for user:', user.email)
         sessionStore.set(sessionId, session)
 
-        const response = NextResponse.json({ 
-          success: true,
-          user, 
-          subscription 
-        })
-        
         // Set session cookie
+        const response = NextResponse.json({
+          success: true,
+          user,
+          subscription
+        })
+
         response.cookies.set('session-id', sessionId, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
@@ -149,26 +161,23 @@ export async function POST(request: NextRequest) {
 
         return response
       }
-      
-      return NextResponse.json({ error: 'Only Google and GitHub sign-in supported' }, { status: 400 })
     }
 
     if (action === 'signout') {
       const sessionId = request.cookies.get('session-id')?.value
-      
+
       if (sessionId) {
         sessionStore.delete(sessionId)
       }
 
       const response = NextResponse.json({ success: true })
       response.cookies.delete('session-id')
-      
       return response
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
-    console.error('Auth error:', error)
-    return NextResponse.json({ error: 'Auth failed' }, { status: 500 })
+    console.error('Auth API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

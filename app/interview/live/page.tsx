@@ -18,10 +18,12 @@ import {
   CheckCircle,
   Clock,
   Brain,
-  Eye
+  Eye,
+  LogIn
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface InterviewSession {
   interviewId: string
@@ -48,7 +50,8 @@ interface AnalysisResult {
 }
 
 export default function LiveInterview() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [session, setSession] = useState<InterviewSession | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState<string>('')
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -71,10 +74,16 @@ export default function LiveInterview() {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (user) {
-      startInterview()
+    // Wait for auth to load, then check user
+    if (!authLoading) {
+      if (!user) {
+        setError('No user in session. Please sign in to start an interview.')
+        setIsInitializing(false)
+      } else {
+        startInterview()
+      }
     }
-  }, [user])
+  }, [user, authLoading])
 
   useEffect(() => {
     if (timeRemaining > 0) {
@@ -365,6 +374,49 @@ export default function LiveInterview() {
     }
   }
 
+  // Show loading while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold mb-2">Loading Authentication</h2>
+            <p className="text-slate-300">Checking your session...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show authentication error
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-slate-300 mb-4">You need to sign in to access the interview feature.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/auth/signin">
+                <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -387,9 +439,16 @@ export default function LiveInterview() {
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-400" />
             <h2 className="text-xl font-semibold mb-2">Interview Error</h2>
             <p className="text-slate-300 mb-4">{error}</p>
-            <Button onClick={startInterview} className="bg-blue-600 hover:bg-blue-700">
-              Try Again
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={startInterview} className="bg-blue-600 hover:bg-blue-700">
+                Try Again
+              </Button>
+              <Link href="/dashboard/enhanced">
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
