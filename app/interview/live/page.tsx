@@ -68,7 +68,8 @@ export default function LiveInterview() {
   const [error, setError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAISpeaking, setIsAISpeaking] = useState(false)
-  const [totalQuestions] = useState(5)
+  const [interviewStarted, setInterviewStarted] = useState(false)
+  const [showStartInfo, setShowStartInfo] = useState(true)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -94,14 +95,14 @@ export default function LiveInterview() {
         setError('No user in session. Please sign in to start an interview.')
         setIsInitializing(false)
       } else {
-        startInterview()
+        initializeInterview()
       }
     }
   }, [user, authLoading])
 
   // Auto-detect when user finishes speaking
   useEffect(() => {
-    if (isRecording && transcript) {
+    if (isRecording && transcript && interviewStarted) {
       // If user stops speaking for 3 seconds, auto-submit
       const timeout = setTimeout(() => {
         if (transcript.trim().length > 10) { // Minimum answer length
@@ -111,13 +112,52 @@ export default function LiveInterview() {
 
       return () => clearTimeout(timeout)
     }
-  }, [transcript, isRecording, session, questionIndex, totalQuestions, analysis])
+  }, [transcript, isRecording, session, questionIndex, analysis, interviewStarted])
 
-  const startInterview = async () => {
+  const initializeInterview = async () => {
     try {
       setIsInitializing(true)
       setError(null)
 
+      // First, try to initialize media
+      let mediaInitialized = false
+      let retryCount = 0
+      const maxRetries = 3
+      
+      while (!mediaInitialized && retryCount < maxRetries) {
+        try {
+          await initializeMedia()
+          mediaInitialized = true
+        } catch (error: any) {
+          retryCount++
+          console.log(`Media initialization attempt ${retryCount} failed:`, error)
+          
+          if (retryCount >= maxRetries) {
+            toast.warning('Media access failed, but interview can proceed with text input only.')
+            setError('Media access failed. You can still participate in the interview using text input.')
+          } else {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+      }
+
+      // Show start info for 3 seconds
+      setTimeout(() => {
+        setShowStartInfo(false)
+        startInterview()
+      }, 3000)
+
+    } catch (error) {
+      console.error('Error initializing interview:', error)
+      setError(error instanceof Error ? error.message : 'Failed to initialize interview')
+      toast.error('Failed to initialize interview')
+    } finally {
+      setIsInitializing(false)
+    }
+  }
+
+  const startInterview = async () => {
+    try {
       const response = await fetch('/api/interview/start-live', {
         method: 'POST',
         headers: {
@@ -138,35 +178,10 @@ export default function LiveInterview() {
         const data = await response.json()
         setSession(data.data)
         setCurrentQuestion(data.data.firstQuestion.question)
+        setInterviewStarted(true)
         
-        // Try to initialize media with retry
-        let mediaInitialized = false
-        let retryCount = 0
-        const maxRetries = 3
-        
-        while (!mediaInitialized && retryCount < maxRetries) {
-          try {
-            await initializeMedia()
-            mediaInitialized = true
-          } catch (error: any) {
-            retryCount++
-            console.log(`Media initialization attempt ${retryCount} failed:`, error)
-            
-            if (retryCount >= maxRetries) {
-              // If media fails, still allow the interview to proceed without video/audio
-              toast.warning('Media access failed, but interview can proceed with text input only.')
-              setError('Media access failed. You can still participate in the interview using text input.')
-            } else {
-              // Wait before retrying
-              await new Promise(resolve => setTimeout(resolve, 1000))
-            }
-          }
-        }
-        
-        // Start the interview by speaking the first question
-        if (mediaInitialized) {
-          speakQuestion(data.data.firstQuestion.question)
-        }
+        // Speak the first question
+        speakQuestion(data.data.firstQuestion.question)
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to start interview')
@@ -175,8 +190,6 @@ export default function LiveInterview() {
       console.error('Error starting interview:', error)
       setError(error instanceof Error ? error.message : 'Failed to start interview')
       toast.error('Failed to start interview')
-    } finally {
-      setIsInitializing(false)
     }
   }
 
@@ -192,8 +205,9 @@ export default function LiveInterview() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        // Ensure video plays
-        videoRef.current.play().catch(console.error)
+        // Ensure video plays and is visible
+        await videoRef.current.play()
+        videoRef.current.style.display = 'block'
       }
 
       // Initialize speech recognition
@@ -241,6 +255,7 @@ export default function LiveInterview() {
         toast.error('Failed to access camera/microphone')
         setError('Camera/microphone access failed. Please check your device permissions and refresh the page.')
       }
+      throw error
     }
   }
 
@@ -331,7 +346,14 @@ export default function LiveInterview() {
       }
 
       // Check if we should continue to next question
-      if (questionIndex < totalQuestions - 1) {
+      // Make it dynamic based on AI analysis and response quality
+      const shouldContinue = analysis && (
+        analysis.confidenceScore > 0.3 && 
+        analysis.relevance > 0.4 && 
+        transcript.trim().length > 20
+      )
+
+      if (shouldContinue) {
         // Get next question
         const nextQuestionResponse = await fetch('/api/interview/next-question', {
           method: 'POST',
@@ -361,7 +383,7 @@ export default function LiveInterview() {
           throw new Error('Failed to get next question')
         }
       } else {
-        // Interview complete
+        // Interview complete - AI has enough information
         await completeInterview()
       }
 
@@ -509,6 +531,45 @@ export default function LiveInterview() {
     )
   }
 
+  // Show start info screen
+  if (showStartInfo && !isInitializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center max-w-2xl mx-auto">
+            <Brain className="h-16 w-16 mx-auto mb-6 text-blue-400" />
+            <h1 className="text-3xl font-bold mb-4">AI Interview Starting</h1>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-blue-400">What to expect:</h2>
+              <ul className="text-left space-y-3 text-slate-300">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>AI will ask questions using text-to-speech</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Speak naturally - no time limits</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Questions are dynamic based on your responses</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <span>Interview will end when AI has enough information</span>
+                </li>
+              </ul>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+              <span className="text-slate-300">Preparing your interview...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -548,7 +609,7 @@ export default function LiveInterview() {
                   Retry Media Access
                 </Button>
               )}
-              <Button onClick={startInterview} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={initializeInterview} className="bg-blue-600 hover:bg-blue-700">
                 Try Again
               </Button>
               <Link href="/dashboard/enhanced">
@@ -595,6 +656,7 @@ export default function LiveInterview() {
           playsInline
           muted
           className="w-full h-full object-cover"
+          style={{ display: 'block' }}
         />
         
         {/* Video overlay with AI speaking indicator */}
@@ -613,9 +675,9 @@ export default function LiveInterview() {
           </div>
         )}
         
-        {/* Question progress */}
+        {/* Question progress - dynamic */}
         <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">
-          <span className="text-sm font-medium">Question {questionIndex + 1} of {totalQuestions}</span>
+          <span className="text-sm font-medium">Question {questionIndex + 1}</span>
         </div>
         
         {/* Processing indicator */}
