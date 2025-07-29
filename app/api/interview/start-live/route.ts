@@ -31,13 +31,12 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         )
       }
 
-      // Create interview session (without settings in interviews table)
+      // Create interview session (without start_time to let database handle defaults)
       const interviewData = {
         user_id: user.id,
         candidate_name: validatedData.candidateName,
         position: 'General Interview',
-        status: 'in_progress',
-        start_time: new Date().toISOString()
+        status: 'in_progress'
       }
 
       const interview = await interviewService.createInterview(interviewData)
