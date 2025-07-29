@@ -80,21 +80,19 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         )
       }
 
-      // Create session with settings and required fields
+      // Create session with minimal required fields
       const sessionToken = Math.random().toString(36).substring(2)
       console.log('Creating session with token:', sessionToken)
       
       let session
       try {
+        // Try with minimal fields first
         const sessionData = {
           interview_id: interview.id,
           session_token: sessionToken,
-          status: 'active',
-          current_question_index: 0,
-          total_questions: 5,
-          settings: validatedData.settings
+          status: 'active'
         }
-        console.log('Session data:', sessionData)
+        console.log('Session data (minimal):', sessionData)
 
         session = await sessionService.createSession(sessionData)
         console.log('Session created:', session.id)
@@ -105,14 +103,32 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
           stack: sessionError.stack,
           name: sessionError.name
         })
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Failed to create session',
-            details: sessionError.message
-          },
-          { status: 500 }
-        )
+        
+        // Try alternative approach - create session without settings
+        try {
+          console.log('Trying alternative session creation...')
+          const alternativeSessionData = {
+            interview_id: interview.id,
+            session_token: sessionToken,
+            status: 'active',
+            current_question_index: 0,
+            total_questions: 5
+          }
+          console.log('Alternative session data:', alternativeSessionData)
+          
+          session = await sessionService.createSession(alternativeSessionData)
+          console.log('Alternative session created:', session.id)
+        } catch (altSessionError) {
+          console.error('Alternative session creation also failed:', altSessionError)
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Failed to create session',
+              details: altSessionError.message
+            },
+            { status: 500 }
+          )
+        }
       }
 
       // Generate first question using AI
