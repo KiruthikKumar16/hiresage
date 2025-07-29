@@ -182,8 +182,15 @@ export default function LiveInterview() {
         setCurrentQuestion(data.data.firstQuestion.question)
         setInterviewStarted(true)
         
-        // Speak the first question
+        // Speak the first question first, then start recording
         speakQuestion(data.data.firstQuestion.question)
+        
+        // Start recording after AI finishes speaking
+        setTimeout(() => {
+          if (recognitionRef.current) {
+            recognitionRef.current.start()
+          }
+        }, 3000) // Wait 3 seconds for AI to finish speaking
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to start interview')
@@ -213,6 +220,10 @@ export default function LiveInterview() {
         videoRef.current.style.width = '100%'
         videoRef.current.style.height = '100%'
         videoRef.current.style.objectFit = 'cover'
+        videoRef.current.style.position = 'absolute'
+        videoRef.current.style.top = '0'
+        videoRef.current.style.left = '0'
+        videoRef.current.style.zIndex = '10'
       }
 
       // Initialize speech recognition
@@ -262,8 +273,8 @@ export default function LiveInterview() {
           }
         }
 
-        // Start speech recognition
-        recognitionRef.current.start()
+        // Don't start immediately - wait for interview to start
+        console.log('Speech recognition initialized but not started yet')
       }
     } catch (error: any) {
       console.error('Error accessing media devices:', error)
@@ -341,8 +352,7 @@ export default function LiveInterview() {
           interviewId: session.interviewId,
           sessionId: session.sessionToken, // Use sessionToken as sessionId
           content: transcript.trim(),
-          emotionData: {},
-          confidenceScore: 0.8
+          emotionData: {}
         })
       })
 
