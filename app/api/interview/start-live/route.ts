@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { interviewService, sessionService, enhancedAIService } from '@/lib/supabase-db-enhanced'
+import { interviewService, sessionService, subscriptionService, enhancedAIService } from '@/lib/supabase-db-enhanced'
 import { withRBAC, RBAC_CONFIGS } from '@/lib/rbac-middleware'
 
 const startLiveInterviewSchema = z.object({
@@ -20,7 +20,7 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
       const validatedData = startLiveInterviewSchema.parse(body)
 
       // Check if user has remaining interviews
-      const subscription = await interviewService.checkUserSubscription(user.id)
+      const subscription = await subscriptionService.getActiveSubscription(user.id)
       if (!subscription || subscription.interviews_remaining <= 0) {
         return NextResponse.json(
           { 
