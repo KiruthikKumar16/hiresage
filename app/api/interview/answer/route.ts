@@ -37,8 +37,7 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         role: 'user' as const,
         content: validatedData.content,
         emotion_data: validatedData.emotionData || {},
-        confidence_score: validatedData.confidenceScore || 0,
-        cheating_flags: validatedData.cheatingFlags || []
+        confidence_score: validatedData.confidenceScore || 0
       }
 
       const message = await messageService.addMessage(messageData)

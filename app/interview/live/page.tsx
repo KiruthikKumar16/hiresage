@@ -236,7 +236,11 @@ export default function LiveInterview() {
             }
           }
 
-          setTranscript(finalTranscript + interimTranscript)
+          // Update transcript with both final and interim results
+          setTranscript(prev => {
+            const currentFinal = prev.replace(/\[interim\].*$/, '') // Remove any existing interim
+            return currentFinal + finalTranscript + (interimTranscript ? ` [interim]${interimTranscript}` : '')
+          })
         }
 
         recognitionRef.current.onerror = (event: any) => {
@@ -252,7 +256,9 @@ export default function LiveInterview() {
           console.log('Speech recognition ended')
           // Restart if still in interview
           if (interviewStarted && !interviewComplete) {
-            recognitionRef.current?.start()
+            setTimeout(() => {
+              recognitionRef.current?.start()
+            }, 100)
           }
         }
 
@@ -336,8 +342,7 @@ export default function LiveInterview() {
           sessionId: session.sessionToken, // Use sessionToken as sessionId
           content: transcript.trim(),
           emotionData: {},
-          confidenceScore: 0.8,
-          cheatingFlags: []
+          confidenceScore: 0.8
         })
       })
 
@@ -576,10 +581,6 @@ export default function LiveInterview() {
               <div className="text-left space-y-3 text-slate-300 mb-6">
                 <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <span>AI will ask questions using text-to-speech</span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   <span>Speak naturally - no time limits</span>
                 </div>
                 <div className="flex items-start">
@@ -690,7 +691,7 @@ export default function LiveInterview() {
           playsInline
           muted
           className="w-full h-full object-cover"
-          style={{ display: 'block' }}
+          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
         />
         
         {/* Video overlay with AI speaking indicator only */}
@@ -719,7 +720,7 @@ export default function LiveInterview() {
             <MessageSquare className="h-4 w-4 text-blue-400" />
             <span className="text-sm font-medium text-blue-400">Your Response:</span>
           </div>
-          <p className="text-white text-sm leading-relaxed">{transcript}</p>
+          <p className="text-white text-sm leading-relaxed">{transcript.replace(/\[interim\].*$/, '')}</p>
         </div>
       )}
     </div>
