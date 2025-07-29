@@ -34,12 +34,11 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
       const messageData = {
         interview_id: validatedData.interviewId,
         session_id: validatedData.sessionId,
-        role: 'user',
+        role: 'user' as const,
         content: validatedData.content,
         emotion_data: validatedData.emotionData || {},
         confidence_score: validatedData.confidenceScore || 0,
-        cheating_flags: validatedData.cheatingFlags || [],
-        timestamp: new Date().toISOString()
+        cheating_flags: validatedData.cheatingFlags || []
       }
 
       const message = await messageService.addMessage(messageData)
