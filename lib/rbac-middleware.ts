@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/lib/supabase-db-enhanced'
+import { sessionStore } from '@/lib/session-store'
 
 export interface UserRole {
   id: string
@@ -19,34 +20,29 @@ export async function rbacMiddleware(
   config: RBACConfig
 ): Promise<{ user: UserRole | null; error: string | null }> {
   try {
-    // Get session from cookie
+    // Get session from cookies
     const sessionId = request.cookies.get('session-id')?.value
+    const sessionToken = request.cookies.get('session-token')?.value
     
-    if (!sessionId) {
+    if (!sessionId && !sessionToken) {
       return { user: null, error: 'No session found' }
     }
 
-    // Get session data (you'll need to implement this based on your session store)
-    const sessionResponse = await fetch(`${request.nextUrl.origin}/api/auth?action=session`, {
-      headers: {
-        Cookie: `session-id=${sessionId}`
-      }
-    })
-
-    if (!sessionResponse.ok) {
+    // Get session data using new session management
+    const session = sessionStore.getSession(sessionId || '', sessionToken)
+    
+    if (!session) {
       return { user: null, error: 'Invalid session' }
     }
 
-    const sessionData = await sessionResponse.json()
-    
-    if (!sessionData.user) {
+    if (!session.user) {
       return { user: null, error: 'No user in session' }
     }
 
     const user: UserRole = {
-      id: sessionData.user.id,
-      role: sessionData.user.role,
-      organization_id: sessionData.user.organization_id
+      id: session.user.id,
+      role: session.user.role || 'candidate', // Default to candidate role
+      organization_id: session.user.organization_id
     }
 
     // Check if user has required role

@@ -113,14 +113,17 @@ export async function POST(request: NextRequest) {
 
     // Create session
     const sessionId = Math.random().toString(36).substring(2)
-    const session = { 
+    const sessionData = { 
       user, 
       subscription, 
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000) 
+      expires: Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
     }
     
     // Store session in global session store
-    sessionStore.set(sessionId, session)
+    sessionStore.set(sessionId, sessionData)
+    
+    // Create JWT token for better persistence
+    const token = sessionStore.createToken(sessionData)
 
     const response = NextResponse.json({ 
       success: true, 
@@ -128,7 +131,15 @@ export async function POST(request: NextRequest) {
       subscription 
     })
     
+    // Set both session-id cookie and JWT token
     response.cookies.set('session-id', sessionId, { 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax', 
+      maxAge: 24 * 60 * 60 
+    })
+    
+    response.cookies.set('session-token', token, { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
       sameSite: 'lax', 

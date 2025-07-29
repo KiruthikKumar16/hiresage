@@ -8,24 +8,21 @@ export async function GET(request: NextRequest) {
 
   if (action === 'session') {
     const sessionId = request.cookies.get('session-id')?.value
+    const sessionToken = request.cookies.get('session-token')?.value
     
-    console.log('Session check - sessionId:', sessionId)
+    console.log('Session check - sessionId:', sessionId, 'hasToken:', !!sessionToken)
     
-    if (sessionId) {
-      const session = sessionStore.get(sessionId)
+    if (sessionId || sessionToken) {
+      const session = sessionStore.getSession(sessionId || '', sessionToken)
       console.log('Session found:', !!session, 'expires:', session?.expires)
       
-      if (session && session.expires > new Date()) {
+      if (session) {
         console.log('Valid session found for user:', session.user?.email)
         return NextResponse.json({
           user: session.user,
           subscription: session.subscription,
           expires: session.expires
         })
-      } else if (session && session.expires <= new Date()) {
-        // Session expired, clean it up
-        console.log('Session expired, cleaning up')
-        sessionStore.delete(sessionId)
       }
     }
     
