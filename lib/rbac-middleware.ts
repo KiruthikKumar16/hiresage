@@ -1,99 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from './supabase-db'
+import { userService } from '@/lib/supabase-db-enhanced'
 
-export interface AuthenticatedUser {
+export interface UserRole {
   id: string
-  email: string
-  name: string
   role: 'system_admin' | 'university_admin' | 'enterprise_admin' | 'candidate'
   organization_id?: string
 }
 
-// Extract and validate JWT token from request
-async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser | null> {
+export interface RBACConfig {
+  allowedRoles: string[]
+  requireOrganization?: boolean
+  organizationField?: string
+}
+
+// RBAC Middleware function
+export async function rbacMiddleware(
+  request: NextRequest,
+  config: RBACConfig
+): Promise<{ user: UserRole | null; error: string | null }> {
   try {
-    // Get authorization header
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return null
-    }
-
-    const token = authHeader.substring(7)
+    // Get session from cookie
+    const sessionId = request.cookies.get('session-id')?.value
     
-    // Verify JWT with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (!sessionId) {
+      return { user: null, error: 'No session found' }
+    }
+
+    // Get session data (you'll need to implement this based on your session store)
+    const sessionResponse = await fetch(`${request.nextUrl.origin}/api/auth?action=session`, {
+      headers: {
+        Cookie: `session-id=${sessionId}`
+      }
+    })
+
+    if (!sessionResponse.ok) {
+      return { user: null, error: 'Invalid session' }
+    }
+
+    const sessionData = await sessionResponse.json()
     
-    if (error || !user) {
-      return null
+    if (!sessionData.user) {
+      return { user: null, error: 'No user in session' }
     }
 
-    // Get user details from our users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData) {
-      return null
+    const user: UserRole = {
+      id: sessionData.user.id,
+      role: sessionData.user.role,
+      organization_id: sessionData.user.organization_id
     }
 
-    // For now, assume all users are candidates unless they have admin role
-    // In a real app, you'd have a roles table or role field
-    const role = userData.role || 'candidate'
-
-    return {
-      id: user.id,
-      email: user.email || '',
-      name: userData.name,
-      role: role as AuthenticatedUser['role'],
-      organization_id: userData.organization_id
+    // Check if user has required role
+    if (!config.allowedRoles.includes(user.role)) {
+      return { user: null, error: 'Insufficient permissions' }
     }
+
+    // Check organization requirement if specified
+    if (config.requireOrganization && !user.organization_id) {
+      return { user: null, error: 'Organization access required' }
+    }
+
+    return { user, error: null }
+
   } catch (error) {
-    console.error('Auth middleware error:', error)
-    return null
+    console.error('RBAC middleware error:', error)
+    return { user: null, error: 'Authentication failed' }
   }
 }
 
-// Require specific role
-export async function requireRole(req: NextRequest, requiredRole: AuthenticatedUser['role']): Promise<AuthenticatedUser> {
-  const user = await getAuthenticatedUser(req)
-  
-  if (!user) {
-    throw new Error('Unauthorized: No valid session')
-  }
+// Helper function to create RBAC wrapper
+export function withRBAC(config: RBACConfig) {
+  return function(handler: (request: NextRequest, user: UserRole) => Promise<NextResponse>) {
+    return async function(request: NextRequest): Promise<NextResponse> {
+      const { user, error } = await rbacMiddleware(request, config)
+      
+      if (error) {
+        return NextResponse.json(
+          { success: false, error },
+          { status: 401 }
+        )
+      }
 
-  if (user.role !== requiredRole) {
-    throw new Error(`Forbidden: Requires ${requiredRole} role`)
-  }
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'User not found' },
+          { status: 401 }
+        )
+      }
 
-  return user
+      return handler(request, user)
+    }
+  }
 }
 
-// Require any of the specified roles
-export async function requireAnyRole(req: NextRequest, roles: AuthenticatedUser['role'][]): Promise<AuthenticatedUser> {
-  const user = await getAuthenticatedUser(req)
-  
-  if (!user) {
-    throw new Error('Unauthorized: No valid session')
+// Predefined RBAC configurations
+export const RBAC_CONFIGS = {
+  SYSTEM_ADMIN: {
+    allowedRoles: ['system_admin'],
+    requireOrganization: false
+  },
+  UNIVERSITY_ADMIN: {
+    allowedRoles: ['university_admin', 'system_admin'],
+    requireOrganization: true
+  },
+  ENTERPRISE_ADMIN: {
+    allowedRoles: ['enterprise_admin', 'system_admin'],
+    requireOrganization: true
+  },
+  CANDIDATE: {
+    allowedRoles: ['candidate', 'university_admin', 'enterprise_admin', 'system_admin'],
+    requireOrganization: false
+  },
+  ANY_AUTHENTICATED: {
+    allowedRoles: ['candidate', 'university_admin', 'enterprise_admin', 'system_admin'],
+    requireOrganization: false
   }
-
-  if (!roles.includes(user.role)) {
-    throw new Error(`Forbidden: Requires one of ${roles.join(', ')} roles`)
-  }
-
-  return user
 }
 
-// Optional authentication - returns user if authenticated, null otherwise
-export async function getOptionalUser(req: NextRequest): Promise<AuthenticatedUser | null> {
-  return await getAuthenticatedUser(req)
-}
-
-// Error response helper
-export function createErrorResponse(message: string, status: number = 401): NextResponse {
-  return NextResponse.json({ 
-    success: false, 
-    error: message 
-  }, { status })
-} 
+// Example usage in API routes:
+/*
+export const GET = withRBAC(RBAC_CONFIGS.SYSTEM_ADMIN)(
+  async (request: NextRequest, user: UserRole) => {
+    // Your API logic here
+    return NextResponse.json({ success: true, data: {} })
+  }
+)
+*/ 

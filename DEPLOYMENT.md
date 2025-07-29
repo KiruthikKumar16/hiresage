@@ -1,217 +1,280 @@
-# 🚀 JoCruit AI - Deployment Guide
+# JoCruit AI - Deployment Guide
 
-## 📋 Pre-Deployment Checklist
+This guide provides step-by-step instructions for deploying JoCruit AI to production.
 
-### ✅ Environment Variables Setup
+## Prerequisites
 
-You need to set these environment variables in your deployment platform:
+- Node.js 20.x or higher
+- pnpm package manager
+- Vercel account
+- Supabase account
+- Google Cloud Console access (for Gemini API)
+- GitHub account (for OAuth)
+
+## Environment Setup
+
+### 1. Supabase Database Setup
+
+1. Create a new Supabase project at https://supabase.com
+2. Navigate to Settings > API to get your project URL and anon key
+3. Run the database schema migration:
+
+```sql
+-- Copy and paste the contents of supabase-schema.sql
+-- This will create all necessary tables and RLS policies
+```
+
+4. Set up Row Level Security (RLS) policies for each table
+5. Create a service role key for server-side operations
+
+### 2. Google Cloud Setup
+
+1. Go to Google Cloud Console
+2. Create a new project or select existing one
+3. Enable the Gemini API
+4. Create API credentials
+5. Copy the API key
+
+### 3. OAuth Setup
+
+#### Google OAuth
+1. Go to Google Cloud Console > APIs & Services > Credentials
+2. Create OAuth 2.0 Client ID
+3. Add authorized redirect URIs:
+   - `http://localhost:3000/auth/callback` (development)
+   - `https://your-domain.vercel.app/auth/callback` (production)
+
+#### GitHub OAuth
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Create new OAuth App
+3. Set callback URL:
+   - `http://localhost:3000/auth/callback` (development)
+   - `https://your-domain.vercel.app/auth/callback` (production)
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
 
 ```env
-# NextAuth Configuration (REQUIRED)
-NEXTAUTH_SECRET=your-nextauth-secret-key-here
-NEXTAUTH_URL=https://your-domain.com
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Google Gemini API (REQUIRED - FREE)
-GEMINI_API_KEY=your-gemini-api-key-here
+# Google Gemini AI
+GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 
-# Google OAuth (Optional - for social login)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# OAuth
+GOOGLE_ID=your_google_oauth_client_id
+GOOGLE_SECRET=your_google_oauth_client_secret
+GITHUB_ID=your_github_oauth_client_id
+GITHUB_SECRET=your_github_oauth_client_secret
 
-# GitHub OAuth (Optional - for social login)
-GITHUB_ID=your-github-client-id
-GITHUB_SECRET=your-github-client-secret
+# Next.js
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_key
+
+# Email (Optional - for report emails)
+SMTP_HOST=your_smtp_host
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
 ```
 
-### 🔑 How to Get API Keys
+## Local Development
 
-1. **Gemini API Key (FREE)**:
-   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Sign in with Google account
-   - Click "Create API Key"
-   - Copy the key
-
-2. **NextAuth Secret**:
-   - Generate with: `openssl rand -base64 32`
-   - Or use any random 32+ character string
-
-3. **Google OAuth** (Optional):
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create OAuth 2.0 credentials
-   - Add redirect URI: `https://your-domain.com/api/auth/callback/google`
-
-4. **GitHub OAuth** (Optional):
-   - Go to [GitHub Developer Settings](https://github.com/settings/developers)
-   - Create new OAuth App
-   - Add callback URL: `https://your-domain.com/api/auth/callback/github`
-
-## 🌐 Deployment Platforms
-
-### 1. Vercel (Recommended)
-
-1. **Connect Repository**:
-   - Go to [Vercel](https://vercel.com)
-   - Import your GitHub repository
-   - Select the `main` branch
-
-2. **Environment Variables**:
-   - Add all environment variables listed above
-   - Set `NEXTAUTH_URL` to your Vercel domain
-
-3. **Deploy**:
-   - Click "Deploy"
-   - Vercel will automatically build and deploy
-
-### 2. Netlify
-
-1. **Connect Repository**:
-   - Go to [Netlify](https://netlify.com)
-   - Connect your GitHub repository
-   - Set build command: `npm run build`
-   - Set publish directory: `.next`
-
-2. **Environment Variables**:
-   - Add all environment variables in Netlify dashboard
-   - Set `NEXTAUTH_URL` to your Netlify domain
-
-### 3. Railway
-
-1. **Deploy**:
-   - Go to [Railway](https://railway.app)
-   - Connect your GitHub repository
-   - Railway will auto-detect Next.js
-
-2. **Environment Variables**:
-   - Add all environment variables in Railway dashboard
-   - Set `NEXTAUTH_URL` to your Railway domain
-
-## 🔧 Build Configuration
-
-### Package Manager
-- **Primary**: `pnpm` (recommended)
-- **Fallback**: `npm`
-
-### Build Command
+1. Install dependencies:
 ```bash
-npm run build
+pnpm install
 ```
 
-### Start Command
+2. Set up environment variables (see above)
+
+3. Run the development server:
 ```bash
-npm start
+pnpm dev
 ```
 
-## 🧪 Testing Deployment
+4. Open http://localhost:3000
 
-After deployment, test these features:
+## Vercel Deployment
 
-1. **Landing Page**: `https://your-domain.com`
-2. **Authentication**: Sign up/sign in
-3. **Dashboard**: `https://your-domain.com/dashboard`
-4. **AI Interviews**: Start an interview session
-5. **Video Interviews**: Test video functionality
-6. **Purchase Flow**: `https://your-domain.com/purchase`
+### 1. Connect Repository
 
-## 🐛 Troubleshooting
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Import the project in Vercel dashboard
+
+### 2. Configure Environment Variables
+
+In Vercel dashboard, go to Settings > Environment Variables and add all the variables from your `.env.local` file.
+
+### 3. Build Settings
+
+- Framework Preset: Next.js
+- Build Command: `pnpm build`
+- Output Directory: `.next`
+- Install Command: `pnpm install`
+
+### 4. Deploy
+
+1. Commit and push your changes
+2. Vercel will automatically deploy
+3. Check the deployment logs for any errors
+
+## Production Checklist
+
+### Database
+- [ ] All tables created with proper schema
+- [ ] RLS policies configured
+- [ ] Service role key configured
+- [ ] Database backups enabled
+
+### Authentication
+- [ ] OAuth providers configured
+- [ ] Redirect URIs set correctly
+- [ ] Session management working
+- [ ] Role-based access control implemented
+
+### AI Integration
+- [ ] Gemini API key configured
+- [ ] AI service responding correctly
+- [ ] Error handling implemented
+- [ ] Rate limiting configured
+
+### Security
+- [ ] Environment variables secured
+- [ ] CORS configured
+- [ ] Input validation implemented
+- [ ] RBAC middleware active
+
+### Performance
+- [ ] Images optimized
+- [ ] Code splitting implemented
+- [ ] Caching configured
+- [ ] CDN enabled
+
+## Monitoring & Analytics
+
+### 1. Vercel Analytics
+- Enable Vercel Analytics in dashboard
+- Monitor performance metrics
+- Track user interactions
+
+### 2. Error Monitoring
+- Set up error tracking (Sentry recommended)
+- Monitor API response times
+- Track failed authentication attempts
+
+### 3. Database Monitoring
+- Monitor Supabase usage
+- Set up alerts for high usage
+- Track query performance
+
+## Troubleshooting
 
 ### Common Issues
 
-1. **Build Failures**:
-   - Check environment variables are set
-   - Ensure all dependencies are installed
-   - Verify Node.js version (18+ recommended)
+1. **OAuth Redirect Errors**
+   - Verify redirect URIs in OAuth provider settings
+   - Check environment variables
+   - Ensure HTTPS in production
 
-2. **Authentication Issues**:
-   - Verify `NEXTAUTH_URL` matches your domain
-   - Check OAuth redirect URIs are correct
-   - Ensure `NEXTAUTH_SECRET` is set
+2. **Database Connection Issues**
+   - Verify Supabase URL and keys
+   - Check RLS policies
+   - Test connection with service role
 
-3. **AI Not Working**:
-   - Verify `GEMINI_API_KEY` is set correctly
-   - Check API key has proper permissions
-   - Test API key separately
+3. **AI Service Errors**
+   - Verify Gemini API key
+   - Check API quotas
+   - Monitor response times
 
-4. **Database Issues**:
-   - App uses localStorage (client-side)
-   - No server database required
-   - Data persists in browser
+4. **Build Failures**
+   - Check Node.js version (20.x required)
+   - Verify all dependencies installed
+   - Check TypeScript errors
 
-## 📊 Performance Optimization
+### Debug Mode
 
-### Build Optimizations
-- ✅ Code splitting enabled
-- ✅ Image optimization
-- ✅ Bundle analysis included
-- ✅ Tree shaking enabled
+Enable debug logging by setting:
+```env
+DEBUG=true
+NODE_ENV=development
+```
 
-### Runtime Optimizations
-- ✅ Server-side rendering
-- ✅ Static generation where possible
-- ✅ Efficient caching
-- ✅ Minimal JavaScript bundle
+## Scaling Considerations
 
-## 🔒 Security Considerations
+### Database
+- Monitor connection pool usage
+- Consider read replicas for high traffic
+- Implement connection pooling
 
-1. **Environment Variables**:
-   - Never commit `.env.local` to git
-   - Use platform-specific secret management
+### API Routes
+- Implement rate limiting
+- Add request caching
+- Consider edge functions for global performance
+
+### AI Processing
+- Implement queue system for long-running tasks
+- Add retry logic for failed requests
+- Monitor API usage and costs
+
+## Backup & Recovery
+
+### Database Backups
+- Enable automatic backups in Supabase
+- Test restore procedures
+- Document backup schedules
+
+### Code Deployment
+- Use Git tags for releases
+- Implement rollback procedures
+- Test deployment in staging environment
+
+## Security Best Practices
+
+1. **Environment Variables**
+   - Never commit secrets to Git
+   - Use Vercel's encrypted environment variables
    - Rotate keys regularly
 
-2. **Authentication**:
-   - NextAuth.js provides secure session management
-   - JWT tokens are used for sessions
-   - CSRF protection enabled
+2. **Authentication**
+   - Implement proper session management
+   - Add rate limiting for auth endpoints
+   - Monitor failed login attempts
 
-3. **API Security**:
-   - Rate limiting recommended
-   - Input validation implemented
-   - Error handling secure
+3. **API Security**
+   - Validate all inputs
+   - Implement proper CORS
+   - Use HTTPS in production
 
-## 📈 Monitoring
+4. **Data Protection**
+   - Encrypt sensitive data
+   - Implement proper access controls
+   - Regular security audits
 
-### Recommended Tools
-1. **Vercel Analytics** (if using Vercel)
-2. **Google Analytics** (optional)
-3. **Sentry** (error tracking)
-4. **Uptime Robot** (uptime monitoring)
+## Support & Maintenance
 
-## 🚀 Post-Deployment
+### Regular Tasks
+- Monitor error logs
+- Update dependencies
+- Review security patches
+- Backup verification
 
-1. **Test All Features**:
-   - User registration/login
-   - Interview sessions
-   - Video interviews
-   - Purchase flow
-   - AI responses
+### Performance Optimization
+- Monitor Core Web Vitals
+- Optimize bundle size
+- Implement caching strategies
+- Database query optimization
 
-2. **Performance Check**:
-   - Page load times
-   - API response times
-   - Mobile responsiveness
+## Contact & Support
 
-3. **Security Audit**:
-   - HTTPS enabled
-   - Environment variables secure
-   - No sensitive data exposed
-
-## 📞 Support
-
-If you encounter issues:
-
-1. **Check Logs**: Platform-specific logging
-2. **Verify Environment**: All variables set correctly
-3. **Test Locally**: Ensure it works in development
-4. **Review Documentation**: Check platform docs
+For technical support or questions:
+- Create an issue in the GitHub repository
+- Check the documentation
+- Review troubleshooting guides
 
 ---
 
-**🎉 Your JoCruit AI application is now ready for deployment!**
-
-The app is fully functional with:
-- ✅ Free Gemini AI integration
-- ✅ Complete authentication system
-- ✅ Real-time interview features
-- ✅ Video interview capabilities
-- ✅ Purchase flow
-- ✅ Responsive design
-- ✅ Production-ready build 
+**Note**: This deployment guide should be updated as the application evolves. Always test changes in a staging environment before deploying to production. 
