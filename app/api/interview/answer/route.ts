@@ -34,24 +34,20 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
       const messageData = {
         interview_id: validatedData.interviewId,
         session_id: validatedData.sessionId,
-        sender_type: 'candidate',
+        role: 'user',
         content: validatedData.content,
-        message_type: 'answer',
-        metadata: {
-          emotionData: validatedData.emotionData || {},
-          confidenceScore: validatedData.confidenceScore || 0,
-          cheatingFlags: validatedData.cheatingFlags || [],
-          timestamp: new Date().toISOString()
-        }
+        emotion_data: validatedData.emotionData || {},
+        confidence_score: validatedData.confidenceScore || 0,
+        cheating_flags: validatedData.cheatingFlags || [],
+        timestamp: new Date().toISOString()
       }
 
       const message = await messageService.addMessage(messageData)
 
       // Update interview with answer data
       await interviewService.updateInterview(validatedData.interviewId, {
-        last_answer: validatedData.content,
-        last_answer_time: new Date().toISOString(),
-        cheating_flags: validatedData.cheatingFlags || []
+        transcript: validatedData.content,
+        ai_feedback: 'Answer submitted successfully'
       })
 
       return NextResponse.json({
