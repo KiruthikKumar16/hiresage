@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { interviewService, sessionService, subscriptionService, enhancedAIService } from '@/lib/supabase-db-enhanced'
+import { interviewService, sessionService, subscriptionService } from '@/lib/supabase-db-enhanced'
+import { enhancedAIService } from '@/lib/ai-service-enhanced'
 import { withRBAC, RBAC_CONFIGS } from '@/lib/rbac-middleware'
 
 const startLiveInterviewSchema = z.object({
@@ -64,7 +65,11 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
           user_id: user.id,
           candidate_name: validatedData.candidateName,
           position: 'General Interview',
-          status: 'in_progress'
+          status: 'in_progress' as const,
+          flagged_cheating: false,
+          cheating_flags: [],
+          emotion_data: {},
+          result_json: {}
         }
 
         interview = await interviewService.createInterview(interviewData)
@@ -98,12 +103,12 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
           'General'
         )
         console.log('First question generated:', firstQuestion.question)
-      } catch (aiError) {
+      } catch (aiError: any) {
         console.error('AI Service error:', aiError)
         console.error('AI Error details:', {
-          message: aiError.message,
-          stack: aiError.stack,
-          name: aiError.name
+          message: aiError?.message,
+          stack: aiError?.stack,
+          name: aiError?.name
         })
         
         // Use fallback question if AI fails
@@ -134,18 +139,18 @@ export const POST = withRBAC(RBAC_CONFIGS.ANY_AUTHENTICATED)(
         }
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Start live interview error:', error)
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
       })
       return NextResponse.json(
         { 
           success: false, 
           error: 'Failed to start interview session',
-          details: error.message
+          details: error?.message
         },
         { status: 500 }
       )
