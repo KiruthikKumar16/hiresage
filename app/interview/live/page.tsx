@@ -69,7 +69,7 @@ export default function LiveInterview() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAISpeaking, setIsAISpeaking] = useState(false)
   const [interviewStarted, setInterviewStarted] = useState(false)
-  const [showStartInfo, setShowStartInfo] = useState(true)
+  const [showStartInfo, setShowStartInfo] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -119,6 +119,9 @@ export default function LiveInterview() {
       setIsInitializing(true)
       setError(null)
 
+      // Show start info popup
+      setShowStartInfo(true)
+
       // First, try to initialize media
       let mediaInitialized = false
       let retryCount = 0
@@ -141,11 +144,11 @@ export default function LiveInterview() {
         }
       }
 
-      // Show start info for 3 seconds
+      // Start interview after 2 seconds
       setTimeout(() => {
         setShowStartInfo(false)
         startInterview()
-      }, 3000)
+      }, 2000)
 
     } catch (error) {
       console.error('Error initializing interview:', error)
@@ -208,6 +211,9 @@ export default function LiveInterview() {
         // Ensure video plays and is visible
         await videoRef.current.play()
         videoRef.current.style.display = 'block'
+        videoRef.current.style.width = '100%'
+        videoRef.current.style.height = '100%'
+        videoRef.current.style.objectFit = 'cover'
       }
 
       // Initialize speech recognition
@@ -300,43 +306,42 @@ export default function LiveInterview() {
   }
 
   const handleAnswerSubmit = async () => {
-    if (!session || !transcript.trim()) {
-      toast.error('Please provide an answer before submitting')
-      return
-    }
+    if (!session || !transcript.trim()) return
 
     setIsProcessing(true)
-    stopRecording()
-
     try {
-      // Submit the answer
-      const answerResponse = await fetch('/api/interview/answer', {
+      // Submit answer to API
+      const response = await fetch('/api/interview/answer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           interviewId: session.interviewId,
-          sessionToken: session.sessionToken,
-          answer: transcript.trim(),
-          questionIndex: questionIndex
+          sessionId: session.sessionToken, // Use sessionToken as sessionId
+          content: transcript.trim(),
+          emotionData: {},
+          confidenceScore: 0.8,
+          cheatingFlags: []
         })
       })
 
-      if (!answerResponse.ok) {
+      if (!response.ok) {
         throw new Error('Failed to submit answer')
       }
 
-      // Analyze the answer
-      const analysisResponse = await fetch('/api/ai/analyze', {
+      const data = await response.json()
+      
+      // Analyze the response using AI
+      const analysisResponse = await fetch('/api/interview/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           interviewId: session.interviewId,
-          text: transcript.trim(),
-          analysisType: 'comprehensive'
+          answer: transcript.trim(),
+          question: currentQuestion
         })
       })
 
@@ -388,8 +393,8 @@ export default function LiveInterview() {
       }
 
     } catch (error) {
-      console.error('Error processing answer:', error)
-      toast.error('Failed to process answer')
+      console.error('Error submitting answer:', error)
+      toast.error('Failed to submit answer')
     } finally {
       setIsProcessing(false)
     }
@@ -531,38 +536,50 @@ export default function LiveInterview() {
     )
   }
 
-  // Show start info screen
+  // Show start info popup
   if (showStartInfo && !isInitializing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center max-w-2xl mx-auto">
-            <Brain className="h-16 w-16 mx-auto mb-6 text-blue-400" />
-            <h1 className="text-3xl font-bold mb-4">AI Interview Starting</h1>
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-blue-400">What to expect:</h2>
-              <ul className="text-left space-y-3 text-slate-300">
-                <li className="flex items-start">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white relative">
+        {/* Background video placeholder */}
+        <div className="absolute inset-0 bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+            style={{ display: 'block' }}
+          />
+        </div>
+        
+        {/* Popup overlay */}
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-slate-800/90 border border-slate-700 rounded-lg p-6 max-w-md mx-4">
+            <div className="text-center">
+              <Brain className="h-12 w-12 mx-auto mb-4 text-blue-400" />
+              <h1 className="text-2xl font-bold mb-4">AI Interview Starting</h1>
+              <div className="text-left space-y-3 text-slate-300 mb-6">
+                <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   <span>AI will ask questions using text-to-speech</span>
-                </li>
-                <li className="flex items-start">
+                </div>
+                <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   <span>Speak naturally - no time limits</span>
-                </li>
-                <li className="flex items-start">
+                </div>
+                <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   <span>Questions are dynamic based on your responses</span>
-                </li>
-                <li className="flex items-start">
+                </div>
+                <div className="flex items-start">
                   <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
                   <span>Interview will end when AI has enough information</span>
-                </li>
-              </ul>
-            </div>
-            <div className="flex items-center justify-center space-x-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
-              <span className="text-slate-300">Preparing your interview...</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
+                <span className="text-slate-300">Preparing your interview...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -674,11 +691,6 @@ export default function LiveInterview() {
             <span className="text-sm font-medium">Recording</span>
           </div>
         )}
-        
-        {/* Question progress - dynamic */}
-        <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2">
-          <span className="text-sm font-medium">Question {questionIndex + 1}</span>
-        </div>
         
         {/* Processing indicator */}
         {isProcessing && (

@@ -32,13 +32,13 @@ export class EnhancedAIService {
     3. Helps assess the candidate's skills and experience
     4. Is appropriate for the interview stage
 
-    Respond in JSON format:
+    Respond ONLY with a JSON object in this exact format:
     {
       "question": "string",
       "category": "technical|behavioral|situational|general",
       "difficulty": "easy|medium|hard",
-      "timeLimit": number (seconds),
-      "followUpQuestions": ["string"] (optional)
+      "timeLimit": number,
+      "followUpQuestions": ["string"]
     }`
 
     try {
@@ -46,14 +46,42 @@ export class EnhancedAIService {
       const response = await result.response
       const text = response.text()
       
-      return JSON.parse(text)
+      // Clean the response to extract JSON
+      let jsonText = text.trim()
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Try to parse the JSON
+      const parsed = JSON.parse(jsonText)
+      
+      // Validate the response structure
+      if (!parsed.question) {
+        throw new Error('Invalid response structure: missing question')
+      }
+      
+      return {
+        question: parsed.question,
+        category: parsed.category || 'general',
+        difficulty: parsed.difficulty || 'medium',
+        timeLimit: parsed.timeLimit || 120,
+        followUpQuestions: parsed.followUpQuestions || []
+      }
     } catch (error) {
       console.error('Error generating interview question:', error)
+      console.log('AI Response was:', text)
+      
+      // Return a fallback question
       return {
         question: "Tell me about a challenging project you worked on and how you overcame obstacles.",
         category: "behavioral",
         difficulty: "medium",
-        timeLimit: 120
+        timeLimit: 120,
+        followUpQuestions: []
       }
     }
   }
