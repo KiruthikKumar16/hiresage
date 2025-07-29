@@ -76,6 +76,17 @@ export default function LiveInterview() {
   const recognitionRef = useRef<any>(null)
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null)
 
+  // Error boundary for client-side errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Client-side error:', event.error)
+      setError('An error occurred. Please refresh the page.')
+    }
+
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
   useEffect(() => {
     // Wait for auth to load, then check user
     if (!authLoading) {
@@ -88,21 +99,19 @@ export default function LiveInterview() {
     }
   }, [user, authLoading])
 
+  // Auto-detect when user finishes speaking
   useEffect(() => {
-    if (timeRemaining > 0) {
-      timerRef.current = setTimeout(() => {
-        setTimeRemaining(prev => prev - 1)
-      }, 1000)
-    } else if (timeRemaining === 0 && isRecording) {
-      handleAnswerSubmit()
-    }
+    if (isRecording && transcript) {
+      // If user stops speaking for 3 seconds, auto-submit
+      const timeout = setTimeout(() => {
+        if (transcript.trim().length > 10) { // Minimum answer length
+          handleAnswerSubmit()
+        }
+      }, 3000)
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
+      return () => clearTimeout(timeout)
     }
-  }, [timeRemaining, isRecording])
+  }, [transcript, isRecording, session, questionIndex, totalQuestions, analysis])
 
   const startInterview = async () => {
     try {
@@ -274,20 +283,6 @@ export default function LiveInterview() {
       setIsRecording(false)
     }
   }
-
-  // Auto-detect when user finishes speaking
-  useEffect(() => {
-    if (isRecording && transcript) {
-      // If user stops speaking for 3 seconds, auto-submit
-      const timeout = setTimeout(() => {
-        if (transcript.trim().length > 10) { // Minimum answer length
-          handleAnswerSubmit()
-        }
-      }, 3000)
-
-      return () => clearTimeout(timeout)
-    }
-  }, [transcript, isRecording])
 
   const handleAnswerSubmit = async () => {
     if (!session || !transcript.trim()) {
