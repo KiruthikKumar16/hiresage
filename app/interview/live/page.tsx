@@ -69,7 +69,6 @@ export default function LiveInterview() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAISpeaking, setIsAISpeaking] = useState(false)
   const [interviewStarted, setInterviewStarted] = useState(false)
-  const [showStartInfo, setShowStartInfo] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -119,9 +118,6 @@ export default function LiveInterview() {
       setIsInitializing(true)
       setError(null)
 
-      // Show start info popup
-      setShowStartInfo(true)
-
       // First, try to initialize media
       let mediaInitialized = false
       let retryCount = 0
@@ -144,11 +140,8 @@ export default function LiveInterview() {
         }
       }
 
-      // Start interview after 2 seconds
-      setTimeout(() => {
-        setShowStartInfo(false)
-        startInterview()
-      }, 2000)
+      // Start interview immediately
+      startInterview()
 
     } catch (error) {
       console.error('Error initializing interview:', error)
@@ -243,6 +236,22 @@ export default function LiveInterview() {
         recognitionRef.current.onerror = (event: any) => {
           console.error('Speech recognition error:', event.error)
         }
+
+        recognitionRef.current.onstart = () => {
+          console.log('Speech recognition started')
+          setIsRecording(true)
+        }
+
+        recognitionRef.current.onend = () => {
+          console.log('Speech recognition ended')
+          // Restart if still in interview
+          if (interviewStarted && !interviewComplete) {
+            recognitionRef.current?.start()
+          }
+        }
+
+        // Start speech recognition
+        recognitionRef.current.start()
       }
     } catch (error: any) {
       console.error('Error accessing media devices:', error)
@@ -536,57 +545,6 @@ export default function LiveInterview() {
     )
   }
 
-  // Show start info popup
-  if (showStartInfo && !isInitializing) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white relative">
-        {/* Background video placeholder */}
-        <div className="absolute inset-0 bg-black">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ display: 'block' }}
-          />
-        </div>
-        
-        {/* Popup overlay */}
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-slate-800/90 border border-slate-700 rounded-lg p-6 max-w-md mx-4">
-            <div className="text-center">
-              <Brain className="h-12 w-12 mx-auto mb-4 text-blue-400" />
-              <h1 className="text-2xl font-bold mb-4">AI Interview Starting</h1>
-              <div className="text-left space-y-3 text-slate-300 mb-6">
-                <div className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <span>AI will ask questions using text-to-speech</span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <span>Speak naturally - no time limits</span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <span>Questions are dynamic based on your responses</span>
-                </div>
-                <div className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-                  <span>Interview will end when AI has enough information</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
-                <span className="text-slate-300">Preparing your interview...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
@@ -676,19 +634,11 @@ export default function LiveInterview() {
           style={{ display: 'block' }}
         />
         
-        {/* Video overlay with AI speaking indicator */}
+        {/* Video overlay with AI speaking indicator only */}
         {isAISpeaking && (
           <div className="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
             <Volume2 className="h-4 w-4 animate-pulse" />
             <span className="text-sm font-medium">AI is speaking...</span>
-          </div>
-        )}
-        
-        {/* Recording indicator */}
-        {isRecording && (
-          <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium">Recording</span>
           </div>
         )}
         
@@ -703,8 +653,8 @@ export default function LiveInterview() {
         )}
       </div>
       
-      {/* Transcript overlay - only show when recording */}
-      {isRecording && transcript && (
+      {/* Transcript overlay - only show when recording and has content */}
+      {isRecording && transcript && transcript.trim().length > 0 && (
         <div className="absolute bottom-20 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="h-4 w-4 text-blue-400" />
@@ -714,8 +664,8 @@ export default function LiveInterview() {
         </div>
       )}
       
-      {/* Manual submit button - only show when recording and has transcript */}
-      {isRecording && transcript.trim().length > 10 && (
+      {/* Manual submit button - only show when has transcript */}
+      {transcript && transcript.trim().length > 10 && (
         <div className="absolute bottom-4 right-4">
           <Button 
             onClick={handleAnswerSubmit}
