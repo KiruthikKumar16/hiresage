@@ -44,10 +44,10 @@ export class EnhancedAIService {
     try {
       const result = await this.model.generateContent(prompt)
       const response = await result.response
-      const text = response.text()
+      const responseText = response.text()
       
       // Clean the response to extract JSON
-      let jsonText = text.trim()
+      let jsonText = responseText.trim()
       
       // Remove markdown code blocks if present
       if (jsonText.startsWith('```json')) {
@@ -73,7 +73,7 @@ export class EnhancedAIService {
       }
     } catch (error) {
       console.error('Error generating interview question:', error)
-      console.log('AI Response was:', text)
+      console.log('AI Response was:', responseText)
       
       // Return a fallback question
       return {

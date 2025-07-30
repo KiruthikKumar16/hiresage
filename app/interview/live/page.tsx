@@ -204,18 +204,20 @@ export default function LiveInterview() {
 
   const initializeMedia = async () => {
     try {
+      console.log('Initializing media...')
+      
       // Use modern MediaDevices API
       const stream = await navigator.mediaDevices.getUserMedia({
         video: isVideoEnabled,
         audio: isAudioEnabled
       })
 
+      console.log('Media stream obtained:', !!stream)
       streamRef.current = stream
 
       if (videoRef.current) {
+        console.log('Setting up video element...')
         videoRef.current.srcObject = stream
-        // Ensure video plays and is visible
-        await videoRef.current.play()
         videoRef.current.style.display = 'block'
         videoRef.current.style.width = '100%'
         videoRef.current.style.height = '100%'
@@ -224,10 +226,19 @@ export default function LiveInterview() {
         videoRef.current.style.top = '0'
         videoRef.current.style.left = '0'
         videoRef.current.style.zIndex = '10'
+        
+        // Ensure video plays
+        try {
+          await videoRef.current.play()
+          console.log('Video started playing')
+        } catch (playError) {
+          console.error('Error playing video:', playError)
+        }
       }
 
       // Initialize speech recognition
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        console.log('Initializing speech recognition...')
         const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
         recognitionRef.current = new SpeechRecognition()
         recognitionRef.current.continuous = true
@@ -235,6 +246,7 @@ export default function LiveInterview() {
         recognitionRef.current.lang = 'en-US'
 
         recognitionRef.current.onresult = (event: any) => {
+          console.log('Speech recognition result:', event.results.length)
           let interimTranscript = ''
           let finalTranscript = ''
 
@@ -268,13 +280,15 @@ export default function LiveInterview() {
           // Restart if still in interview
           if (interviewStarted && !interviewComplete) {
             setTimeout(() => {
+              console.log('Restarting speech recognition...')
               recognitionRef.current?.start()
             }, 100)
           }
         }
 
-        // Don't start immediately - wait for interview to start
         console.log('Speech recognition initialized but not started yet')
+      } else {
+        console.error('Speech recognition not supported')
       }
     } catch (error: any) {
       console.error('Error accessing media devices:', error)
