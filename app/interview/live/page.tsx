@@ -3,29 +3,18 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import { 
-  Video, 
-  Mic, 
-  MicOff, 
-  VideoOff, 
-  Play, 
-  Pause, 
-  Square,
   AlertTriangle,
   CheckCircle,
-  Clock,
   Brain,
-  Eye,
   LogIn,
   Volume2,
-  MessageSquare
+  MessageSquare,
+  Mic,
+  MicOff
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 interface InterviewSession {
   interviewId: string
@@ -40,106 +29,37 @@ interface InterviewSession {
   }
 }
 
-interface AnalysisResult {
-  confidenceScore: number
-  truthfulness: number
-  relevance: number
-  completeness: number
-  emotionAnalysis: any
-  cheatingFlags: any[]
-  suggestions: string[]
-  nextQuestion?: string
-}
-
 export default function LiveInterview() {
   const { user, loading: authLoading } = useAuth()
-  const router = useRouter()
   const [session, setSession] = useState<InterviewSession | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState<string>('')
-  const [questionIndex, setQuestionIndex] = useState(0)
-  const [isRecording, setIsRecording] = useState(false)
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true)
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true)
   const [transcript, setTranscript] = useState('')
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [interviewComplete, setInterviewComplete] = useState(false)
-  const [results, setResults] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [isAISpeaking, setIsAISpeaking] = useState(false)
-  const [interviewStarted, setInterviewStarted] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const [showStartInfo, setShowStartInfo] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recognitionRef = useRef<any>(null)
-  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null)
 
-  // Error boundary for client-side errors
+  // Initialize interview when component mounts
   useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      console.error('Client-side error:', event.error)
-      setError('An error occurred. Please refresh the page.')
-    }
-
-    window.addEventListener('error', handleError)
-    return () => window.removeEventListener('error', handleError)
-  }, [])
-
-  useEffect(() => {
-    // Wait for auth to load, then check user
-    if (!authLoading) {
-      if (!user) {
-        setError('No user in session. Please sign in to start an interview.')
-        setIsInitializing(false)
-      } else {
-        initializeInterview()
-      }
+    if (!authLoading && user) {
+      initializeInterview()
+    } else if (!authLoading && !user) {
+      setError('No user in session. Please sign in to start an interview.')
+      setIsInitializing(false)
     }
   }, [user, authLoading])
-
-  // Auto-detect when user finishes speaking
-  useEffect(() => {
-    if (isRecording && transcript && interviewStarted) {
-      // If user stops speaking for 3 seconds, auto-submit
-      const timeout = setTimeout(() => {
-        if (transcript.trim().length > 10) { // Minimum answer length
-          handleAnswerSubmit()
-        }
-      }, 3000)
-
-      return () => clearTimeout(timeout)
-    }
-  }, [transcript, isRecording, session, questionIndex, analysis, interviewStarted])
 
   const initializeInterview = async () => {
     try {
       setIsInitializing(true)
       setError(null)
-
-      // First, try to initialize media
-      let mediaInitialized = false
-      let retryCount = 0
-      const maxRetries = 3
-      
-      while (!mediaInitialized && retryCount < maxRetries) {
-        try {
-          await initializeMedia()
-          mediaInitialized = true
-        } catch (error: any) {
-          retryCount++
-          console.log(`Media initialization attempt ${retryCount} failed:`, error)
-          
-          if (retryCount >= maxRetries) {
-            toast.warning('Media access failed, but interview can proceed with text input only.')
-            setError('Media access failed. You can still participate in the interview using text input.')
-          } else {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          }
-        }
-      }
 
       // Start the interview session
       console.log('Starting interview session...')
@@ -154,7 +74,7 @@ export default function LiveInterview() {
           settings: {
             enableVideo: true,
             enableAudio: true,
-            questionTimeLimit: 0 // No time limit
+            questionTimeLimit: 0
           }
         })
       })
@@ -164,6 +84,9 @@ export default function LiveInterview() {
         console.log('Interview session started:', data)
         setSession(data.data)
         setCurrentQuestion(data.data.firstQuestion.question)
+        
+        // Initialize media after session is created
+        await initializeMedia()
         
         // Show start info popup
         setShowStartInfo(true)
@@ -181,6 +104,147 @@ export default function LiveInterview() {
     }
   }
 
+  const initializeMedia = async () => {
+    try {
+      console.log('Initializing media...')
+      
+      // Get camera and microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      })
+
+      console.log('Media stream obtained:', !!stream, 'tracks:', stream.getTracks().length)
+      streamRef.current = stream
+
+      // Set up video element
+      if (videoRef.current) {
+        console.log('Setting up video element...')
+        videoRef.current.srcObject = stream
+        
+        // Wait for video to load
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight)
+          videoRef.current?.play()
+        }
+        
+        videoRef.current.oncanplay = () => {
+          console.log('Video can play')
+        }
+        
+        videoRef.current.onplay = () => {
+          console.log('Video started playing')
+        }
+        
+        videoRef.current.onerror = (e) => {
+          console.error('Video error:', e)
+        }
+      }
+
+      // Initialize speech recognition
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        console.log('Initializing speech recognition...')
+        const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+        
+        if (SpeechRecognition) {
+          recognitionRef.current = new SpeechRecognition()
+          recognitionRef.current.continuous = true
+          recognitionRef.current.interimResults = true
+          recognitionRef.current.lang = 'en-US'
+          recognitionRef.current.maxAlternatives = 1
+
+          recognitionRef.current.onresult = (event: any) => {
+            console.log('Speech recognition result:', event.results.length)
+            let interimTranscript = ''
+            let finalTranscript = ''
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript
+              } else {
+                interimTranscript += transcript
+              }
+            }
+
+            setTranscript(prev => {
+              const currentFinal = prev.replace(/\[interim\].*$/, '')
+              return currentFinal + finalTranscript + (interimTranscript ? ` [interim]${interimTranscript}` : '')
+            })
+          }
+
+          recognitionRef.current.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error)
+            if (event.error === 'not-allowed') {
+              toast.error('Microphone access denied. Please allow microphone access.')
+            } else if (event.error === 'no-speech') {
+              console.log('No speech detected')
+            } else {
+              toast.error(`Speech recognition error: ${event.error}`)
+            }
+          }
+
+          recognitionRef.current.onstart = () => {
+            console.log('Speech recognition started successfully')
+            setIsRecording(true)
+          }
+
+          recognitionRef.current.onend = () => {
+            console.log('Speech recognition ended')
+            setIsRecording(false)
+            // Restart if still in interview
+            if (!interviewComplete) {
+              setTimeout(() => {
+                try {
+                  recognitionRef.current?.start()
+                } catch (error) {
+                  console.error('Failed to restart speech recognition:', error)
+                }
+              }, 100)
+            }
+          }
+
+          console.log('Speech recognition initialized successfully')
+        } else {
+          console.error('SpeechRecognition constructor not available')
+          toast.error('Speech recognition not supported in this browser')
+        }
+      } else {
+        console.error('Speech recognition not supported')
+        toast.error('Speech recognition not supported in this browser')
+      }
+
+    } catch (error: any) {
+      console.error('Error accessing media devices:', error)
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('Camera/microphone access denied. Please allow access in your browser settings.')
+        setError('Camera/microphone access denied. Please allow access in your browser settings and refresh the page.')
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No camera or microphone found.')
+        setError('No camera or microphone detected. Please connect a device and refresh the page.')
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('Media devices not supported in this browser.')
+        setError('Media devices are not supported in this browser. Please use a modern browser.')
+      } else if (error.name === 'NotReadableError') {
+        toast.error('Camera/microphone is already in use.')
+        setError('Camera/microphone is already in use by another application. Please close other apps and refresh.')
+      } else {
+        toast.error('Failed to access camera/microphone')
+        setError(`Camera/microphone access failed: ${error.message}. Please check your device permissions and refresh the page.`)
+      }
+      throw error
+    }
+  }
+
   const handleStartInterview = () => {
     setShowStartInfo(false)
     startInterview()
@@ -189,7 +253,6 @@ export default function LiveInterview() {
   const startInterview = async () => {
     try {
       console.log('Starting interview...')
-      setInterviewStarted(true)
       setShowStartInfo(false)
 
       // Speak the first question
@@ -245,240 +308,19 @@ export default function LiveInterview() {
     }
   }
 
-  const initializeMedia = async () => {
-    try {
-      console.log('Initializing media...')
-      
-      // Request permissions first
-      const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName })
-      console.log('Camera permission status:', permissions.state)
-      
-      // Use modern MediaDevices API with explicit constraints
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+  // Auto-detect when user finishes speaking
+  useEffect(() => {
+    if (isRecording && transcript && transcript.trim().length > 10) {
+      // If user stops speaking for 3 seconds, auto-submit
+      const timeout = setTimeout(() => {
+        if (transcript.trim().length > 10) {
+          handleAnswerSubmit()
         }
-      })
+      }, 3000)
 
-      console.log('Media stream obtained:', !!stream, 'tracks:', stream.getTracks().length)
-      streamRef.current = stream
-
-      if (videoRef.current) {
-        console.log('Setting up video element...')
-        videoRef.current.srcObject = stream
-        
-        // Set video element properties
-        videoRef.current.style.display = 'block'
-        videoRef.current.style.width = '100%'
-        videoRef.current.style.height = '100%'
-        videoRef.current.style.objectFit = 'cover'
-        videoRef.current.style.position = 'absolute'
-        videoRef.current.style.top = '0'
-        videoRef.current.style.left = '0'
-        videoRef.current.style.zIndex = '10'
-        videoRef.current.style.backgroundColor = '#000'
-        
-        // Add event listeners for debugging
-        videoRef.current.onloadedmetadata = () => {
-          console.log('Video metadata loaded:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight)
-        }
-        
-        videoRef.current.oncanplay = () => {
-          console.log('Video can play')
-        }
-        
-        videoRef.current.onplay = () => {
-          console.log('Video started playing')
-        }
-        
-        videoRef.current.onerror = (e) => {
-          console.error('Video error:', e)
-        }
-        
-        // Ensure video plays
-        try {
-          await videoRef.current.play()
-          console.log('Video started playing successfully')
-          
-          // Force a re-render to ensure video is visible
-          setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.style.display = 'block'
-              console.log('Video element forced to display')
-              
-              // Additional check to ensure video is visible
-              if (videoRef.current.videoWidth === 0) {
-                console.warn('Video width is 0, trying to restart')
-                videoRef.current.srcObject = null
-                setTimeout(() => {
-                  if (videoRef.current && streamRef.current) {
-                    videoRef.current.srcObject = streamRef.current
-                    videoRef.current.play()
-                  }
-                }, 100)
-              }
-            }
-          }, 100)
-        } catch (playError) {
-          console.error('Error playing video:', playError)
-          // Try again after a short delay
-          setTimeout(async () => {
-            try {
-              await videoRef.current?.play()
-              console.log('Video started playing on retry')
-            } catch (retryError) {
-              console.error('Video play retry failed:', retryError)
-            }
-          }, 1000)
-        }
-      } else {
-        console.error('Video ref is null')
-      }
-
-      // Initialize speech recognition with better error handling
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        console.log('Initializing speech recognition...')
-        const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
-        
-        if (SpeechRecognition) {
-          recognitionRef.current = new SpeechRecognition()
-          recognitionRef.current.continuous = true
-          recognitionRef.current.interimResults = true
-          recognitionRef.current.lang = 'en-US'
-          recognitionRef.current.maxAlternatives = 1
-
-          recognitionRef.current.onresult = (event: any) => {
-            console.log('Speech recognition result:', event.results.length)
-            let interimTranscript = ''
-            let finalTranscript = ''
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcript = event.results[i][0].transcript
-              if (event.results[i].isFinal) {
-                finalTranscript += transcript
-              } else {
-                interimTranscript += transcript
-              }
-            }
-
-            // Update transcript with both final and interim results
-            setTranscript(prev => {
-              const currentFinal = prev.replace(/\[interim\].*$/, '') // Remove any existing interim
-              return currentFinal + finalTranscript + (interimTranscript ? ` [interim]${interimTranscript}` : '')
-            })
-          }
-
-          recognitionRef.current.onerror = (event: any) => {
-            console.error('Speech recognition error:', event.error)
-            if (event.error === 'not-allowed') {
-              toast.error('Microphone access denied. Please allow microphone access.')
-            } else if (event.error === 'no-speech') {
-              console.log('No speech detected')
-            } else {
-              toast.error(`Speech recognition error: ${event.error}`)
-            }
-          }
-
-          recognitionRef.current.onstart = () => {
-            console.log('Speech recognition started successfully')
-            setIsRecording(true)
-          }
-
-          recognitionRef.current.onend = () => {
-            console.log('Speech recognition ended')
-            setIsRecording(false)
-            // Restart if still in interview
-            if (interviewStarted && !interviewComplete) {
-              setTimeout(() => {
-                console.log('Restarting speech recognition...')
-                try {
-                  recognitionRef.current?.start()
-                } catch (error) {
-                  console.error('Failed to restart speech recognition:', error)
-                }
-              }, 100)
-            }
-          }
-
-          console.log('Speech recognition initialized successfully')
-        } else {
-          console.error('SpeechRecognition constructor not available')
-          toast.error('Speech recognition not supported in this browser')
-        }
-      } else {
-        console.error('Speech recognition not supported')
-        toast.error('Speech recognition not supported in this browser')
-      }
-    } catch (error: any) {
-      console.error('Error accessing media devices:', error)
-      
-      // Provide more specific error messages
-      if (error.name === 'NotAllowedError') {
-        toast.error('Camera/microphone access denied. Please allow access in your browser settings.')
-        setError('Camera/microphone access denied. Please allow access in your browser settings and refresh the page.')
-      } else if (error.name === 'NotFoundError') {
-        toast.error('No camera or microphone found.')
-        setError('No camera or microphone detected. Please connect a device and refresh the page.')
-      } else if (error.name === 'NotSupportedError') {
-        toast.error('Media devices not supported in this browser.')
-        setError('Media devices are not supported in this browser. Please use a modern browser.')
-      } else if (error.name === 'NotReadableError') {
-        toast.error('Camera/microphone is already in use.')
-        setError('Camera/microphone is already in use by another application. Please close other apps and refresh.')
-      } else {
-        toast.error('Failed to access camera/microphone')
-        setError(`Camera/microphone access failed: ${error.message}. Please check your device permissions and refresh the page.`)
-      }
-      throw error
+      return () => clearTimeout(timeout)
     }
-  }
-
-  const startRecording = async () => {
-    if (!streamRef.current) {
-      toast.error('No media stream available')
-      return
-    }
-
-    try {
-      const mediaRecorder = new MediaRecorder(streamRef.current)
-      mediaRecorderRef.current = mediaRecorder
-
-      const chunks: Blob[] = []
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data)
-        }
-      }
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' })
-        console.log('Recording stopped, blob size:', blob.size)
-      }
-
-      mediaRecorder.start()
-      setIsRecording(true)
-      recognitionRef.current?.start()
-      toast.success('Recording started - Speak your answer')
-    } catch (error) {
-      console.error('Error starting recording:', error)
-      toast.error('Failed to start recording')
-    }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      recognitionRef.current?.stop()
-      setIsRecording(false)
-    }
-  }
+  }, [transcript, isRecording])
 
   const handleAnswerSubmit = async () => {
     if (!session || !transcript.trim()) return
@@ -495,7 +337,7 @@ export default function LiveInterview() {
         },
         body: JSON.stringify({
           interviewId: session.interviewId,
-          sessionId: session.sessionToken, // Use sessionToken as sessionId
+          sessionId: session.sessionToken,
           content: transcript.trim()
         })
       })
@@ -511,8 +353,7 @@ export default function LiveInterview() {
       // Clear transcript for next question
       setTranscript('')
       
-      // Get next question or complete interview
-      // For now, just complete the interview after one answer
+      // Complete the interview after one answer
       await completeInterview()
 
     } catch (error) {
@@ -539,7 +380,6 @@ export default function LiveInterview() {
 
       if (response.ok) {
         const data = await response.json()
-        setResults(data.data)
         setInterviewComplete(true)
         toast.success('Interview completed successfully!')
       } else {
@@ -549,70 +389,6 @@ export default function LiveInterview() {
       console.error('Error completing interview:', error)
       toast.error('Failed to complete interview')
       setError(error instanceof Error ? error.message : 'Failed to complete interview')
-    }
-  }
-
-  const toggleVideo = () => {
-    setIsVideoEnabled(!isVideoEnabled)
-    if (videoRef.current && streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0]
-      if (videoTrack) {
-        videoTrack.enabled = !isVideoEnabled
-      }
-    }
-  }
-
-  const toggleAudio = () => {
-    setIsAudioEnabled(!isAudioEnabled)
-    if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0]
-      if (audioTrack) {
-        audioTrack.enabled = !isAudioEnabled
-      }
-    }
-  }
-
-  const speakQuestion = (question: string) => {
-    if ('speechSynthesis' in window) {
-      speechSynthesisRef.current = window.speechSynthesis
-      
-      // Cancel any ongoing speech
-      speechSynthesisRef.current.cancel()
-      
-      const utterance = new SpeechSynthesisUtterance(question)
-      utterance.rate = 0.9 // Slightly slower for clarity
-      utterance.pitch = 1.0
-      utterance.volume = 0.8
-      
-      utterance.onstart = () => {
-        setIsAISpeaking(true)
-        toast.info('AI is asking the question...')
-      }
-      
-      utterance.onend = () => {
-        setIsAISpeaking(false)
-        // Start recording after AI finishes speaking
-        setTimeout(() => {
-          startRecording()
-        }, 1000)
-      }
-      
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event)
-        setIsAISpeaking(false)
-        // Start recording even if speech fails
-        setTimeout(() => {
-          startRecording()
-        }, 1000)
-      }
-      
-      speechSynthesisRef.current.speak(utterance)
-    } else {
-      // Fallback if speech synthesis not available
-      toast.info('Question: ' + question)
-      setTimeout(() => {
-        startRecording()
-      }, 2000)
     }
   }
 
@@ -670,16 +446,13 @@ export default function LiveInterview() {
             autoPlay
             playsInline
             muted
+            className="w-full h-full object-cover"
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
               position: 'absolute',
               top: 0,
               left: 0,
               zIndex: 1,
-              backgroundColor: '#000',
-              display: 'block'
+              backgroundColor: '#000'
             }}
           />
         </div>
@@ -759,7 +532,7 @@ export default function LiveInterview() {
               <Button onClick={initializeInterview} className="bg-blue-600 hover:bg-blue-700">
                 Try Again
               </Button>
-              <Link href="/dashboard/enhanced">
+              <Link href="/dashboard">
                 <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
                   Back to Dashboard
                 </Button>
@@ -771,7 +544,7 @@ export default function LiveInterview() {
     )
   }
 
-  if (interviewComplete && results) {
+  if (interviewComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
         <div className="container mx-auto px-4 py-8">
@@ -780,7 +553,7 @@ export default function LiveInterview() {
             <h2 className="text-xl font-semibold mb-2">Interview Complete!</h2>
             <p className="text-slate-300 mb-4">Your AI interview has been completed successfully.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/dashboard/enhanced">
+              <Link href="/dashboard">
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   Back to Dashboard
                 </Button>
@@ -802,16 +575,13 @@ export default function LiveInterview() {
           autoPlay
           playsInline
           muted
+          className="w-full h-full object-cover"
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
             position: 'absolute',
             top: 0,
             left: 0,
             zIndex: 1,
-            backgroundColor: '#000',
-            display: 'block'
+            backgroundColor: '#000'
           }}
         />
         
