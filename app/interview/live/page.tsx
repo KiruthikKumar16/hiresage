@@ -160,44 +160,59 @@ export default function LiveInterview() {
 
   const startInterview = async () => {
     try {
-      const response = await fetch('/api/interview/start-live', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: user?.id,
-          candidateName: user?.name || 'Candidate',
-          settings: {
-            enableVideo: true,
-            enableAudio: true,
-            questionTimeLimit: 0 // No time limit
-          }
-        })
-      })
+      console.log('Starting interview...')
+      setInterviewStarted(true)
+      setShowStartInfo(false)
 
-      if (response.ok) {
-        const data = await response.json()
-        setSession(data.data)
-        setCurrentQuestion(data.data.firstQuestion.question)
-        setInterviewStarted(true)
+      // Speak the first question
+      if (currentQuestion) {
+        console.log('Speaking first question:', currentQuestion)
+        setIsAISpeaking(true)
         
-        // Speak the first question first, then start recording
-        speakQuestion(data.data.firstQuestion.question)
+        const utterance = new SpeechSynthesisUtterance(currentQuestion)
+        utterance.rate = 0.9
+        utterance.pitch = 1
+        utterance.volume = 1
         
-        // Start recording after AI finishes speaking
-        setTimeout(() => {
-          if (recognitionRef.current) {
-            recognitionRef.current.start()
-          }
-        }, 3000) // Wait 3 seconds for AI to finish speaking
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to start interview')
+        utterance.onend = () => {
+          console.log('AI finished speaking, starting speech recognition...')
+          setIsAISpeaking(false)
+          
+          // Start speech recognition after AI finishes speaking
+          setTimeout(() => {
+            console.log('Starting speech recognition after AI speech...')
+            try {
+              if (recognitionRef.current) {
+                recognitionRef.current.start()
+                console.log('Speech recognition started successfully')
+              } else {
+                console.error('Speech recognition not initialized')
+                toast.error('Speech recognition not available')
+              }
+            } catch (error) {
+              console.error('Failed to start speech recognition:', error)
+              toast.error('Failed to start speech recognition')
+            }
+          }, 3000) // 3 second delay after AI finishes speaking
+        }
+        
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event)
+          setIsAISpeaking(false)
+          // Start speech recognition even if AI speech fails
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start()
+            } catch (error) {
+              console.error('Failed to start speech recognition after AI error:', error)
+            }
+          }, 1000)
+        }
+        
+        window.speechSynthesis.speak(utterance)
       }
     } catch (error) {
       console.error('Error starting interview:', error)
-      setError(error instanceof Error ? error.message : 'Failed to start interview')
       toast.error('Failed to start interview')
     }
   }
@@ -206,13 +221,25 @@ export default function LiveInterview() {
     try {
       console.log('Initializing media...')
       
-      // Use modern MediaDevices API
+      // Request permissions first
+      const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName })
+      console.log('Camera permission status:', permissions.state)
+      
+      // Use modern MediaDevices API with explicit constraints
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: isVideoEnabled,
-        audio: isAudioEnabled
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       })
 
-      console.log('Media stream obtained:', !!stream)
+      console.log('Media stream obtained:', !!stream, 'tracks:', stream.getTracks().length)
       streamRef.current = stream
 
       if (videoRef.current) {
@@ -226,69 +253,99 @@ export default function LiveInterview() {
         videoRef.current.style.top = '0'
         videoRef.current.style.left = '0'
         videoRef.current.style.zIndex = '10'
+        videoRef.current.style.backgroundColor = '#000'
         
         // Ensure video plays
         try {
           await videoRef.current.play()
-          console.log('Video started playing')
+          console.log('Video started playing successfully')
         } catch (playError) {
           console.error('Error playing video:', playError)
+          // Try again after a short delay
+          setTimeout(async () => {
+            try {
+              await videoRef.current?.play()
+              console.log('Video started playing on retry')
+            } catch (retryError) {
+              console.error('Video play retry failed:', retryError)
+            }
+          }, 1000)
         }
       }
 
-      // Initialize speech recognition
+      // Initialize speech recognition with better error handling
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         console.log('Initializing speech recognition...')
         const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
-        recognitionRef.current = new SpeechRecognition()
-        recognitionRef.current.continuous = true
-        recognitionRef.current.interimResults = true
-        recognitionRef.current.lang = 'en-US'
+        
+        if (SpeechRecognition) {
+          recognitionRef.current = new SpeechRecognition()
+          recognitionRef.current.continuous = true
+          recognitionRef.current.interimResults = true
+          recognitionRef.current.lang = 'en-US'
+          recognitionRef.current.maxAlternatives = 1
 
-        recognitionRef.current.onresult = (event: any) => {
-          console.log('Speech recognition result:', event.results.length)
-          let interimTranscript = ''
-          let finalTranscript = ''
+          recognitionRef.current.onresult = (event: any) => {
+            console.log('Speech recognition result:', event.results.length)
+            let interimTranscript = ''
+            let finalTranscript = ''
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript
+              } else {
+                interimTranscript += transcript
+              }
+            }
+
+            // Update transcript with both final and interim results
+            setTranscript(prev => {
+              const currentFinal = prev.replace(/\[interim\].*$/, '') // Remove any existing interim
+              return currentFinal + finalTranscript + (interimTranscript ? ` [interim]${interimTranscript}` : '')
+            })
+          }
+
+          recognitionRef.current.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error)
+            if (event.error === 'not-allowed') {
+              toast.error('Microphone access denied. Please allow microphone access.')
+            } else if (event.error === 'no-speech') {
+              console.log('No speech detected')
             } else {
-              interimTranscript += transcript
+              toast.error(`Speech recognition error: ${event.error}`)
             }
           }
 
-          // Update transcript with both final and interim results
-          setTranscript(prev => {
-            const currentFinal = prev.replace(/\[interim\].*$/, '') // Remove any existing interim
-            return currentFinal + finalTranscript + (interimTranscript ? ` [interim]${interimTranscript}` : '')
-          })
-        }
-
-        recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error)
-        }
-
-        recognitionRef.current.onstart = () => {
-          console.log('Speech recognition started')
-          setIsRecording(true)
-        }
-
-        recognitionRef.current.onend = () => {
-          console.log('Speech recognition ended')
-          // Restart if still in interview
-          if (interviewStarted && !interviewComplete) {
-            setTimeout(() => {
-              console.log('Restarting speech recognition...')
-              recognitionRef.current?.start()
-            }, 100)
+          recognitionRef.current.onstart = () => {
+            console.log('Speech recognition started successfully')
+            setIsRecording(true)
           }
-        }
 
-        console.log('Speech recognition initialized but not started yet')
+          recognitionRef.current.onend = () => {
+            console.log('Speech recognition ended')
+            setIsRecording(false)
+            // Restart if still in interview
+            if (interviewStarted && !interviewComplete) {
+              setTimeout(() => {
+                console.log('Restarting speech recognition...')
+                try {
+                  recognitionRef.current?.start()
+                } catch (error) {
+                  console.error('Failed to restart speech recognition:', error)
+                }
+              }, 100)
+            }
+          }
+
+          console.log('Speech recognition initialized successfully')
+        } else {
+          console.error('SpeechRecognition constructor not available')
+          toast.error('Speech recognition not supported in this browser')
+        }
       } else {
         console.error('Speech recognition not supported')
+        toast.error('Speech recognition not supported in this browser')
       }
     } catch (error: any) {
       console.error('Error accessing media devices:', error)
@@ -303,9 +360,12 @@ export default function LiveInterview() {
       } else if (error.name === 'NotSupportedError') {
         toast.error('Media devices not supported in this browser.')
         setError('Media devices are not supported in this browser. Please use a modern browser.')
+      } else if (error.name === 'NotReadableError') {
+        toast.error('Camera/microphone is already in use.')
+        setError('Camera/microphone is already in use by another application. Please close other apps and refresh.')
       } else {
         toast.error('Failed to access camera/microphone')
-        setError('Camera/microphone access failed. Please check your device permissions and refresh the page.')
+        setError(`Camera/microphone access failed: ${error.message}. Please check your device permissions and refresh the page.`)
       }
       throw error
     }
@@ -714,8 +774,17 @@ export default function LiveInterview() {
           autoPlay
           playsInline
           muted
-          className="w-full h-full object-cover"
-          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 10,
+            backgroundColor: '#000',
+            display: 'block'
+          }}
         />
         
         {/* Video overlay with AI speaking indicator only */}
