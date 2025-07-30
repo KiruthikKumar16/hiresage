@@ -119,9 +119,6 @@ export default function LiveInterview() {
       setIsInitializing(true)
       setError(null)
 
-      // Show start info popup
-      setShowStartInfo(true)
-
       // First, try to initialize media
       let mediaInitialized = false
       let retryCount = 0
@@ -142,6 +139,37 @@ export default function LiveInterview() {
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
         }
+      }
+
+      // Start the interview session
+      console.log('Starting interview session...')
+      const response = await fetch('/api/interview/start-live', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          candidateName: user?.name || 'Candidate',
+          settings: {
+            enableVideo: true,
+            enableAudio: true,
+            questionTimeLimit: 0 // No time limit
+          }
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Interview session started:', data)
+        setSession(data.data)
+        setCurrentQuestion(data.data.firstQuestion.question)
+        
+        // Show start info popup
+        setShowStartInfo(true)
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to start interview session')
       }
 
     } catch (error) {
@@ -643,21 +671,30 @@ export default function LiveInterview() {
   // Show start info popup
   if (showStartInfo && !isInitializing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white relative">
-        {/* Background video placeholder */}
-        <div className="absolute inset-0 bg-black">
+      <div className="min-h-screen bg-black text-white relative overflow-hidden">
+        {/* Background video */}
+        <div className="absolute inset-0">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
-            style={{ display: 'block' }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 1,
+              backgroundColor: '#000',
+              display: 'block'
+            }}
           />
         </div>
         
         {/* Popup overlay */}
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20">
           <div className="bg-slate-800/90 border border-slate-700 rounded-lg p-6 max-w-md mx-4">
             <div className="text-center">
               <Brain className="h-12 w-12 mx-auto mb-4 text-blue-400" />
@@ -768,7 +805,7 @@ export default function LiveInterview() {
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
       {/* Full screen video */}
-      <div className="absolute inset-0 z-10">
+      <div className="absolute inset-0">
         <video
           ref={videoRef}
           autoPlay
@@ -781,7 +818,7 @@ export default function LiveInterview() {
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 10,
+            zIndex: 1,
             backgroundColor: '#000',
             display: 'block'
           }}
@@ -789,7 +826,7 @@ export default function LiveInterview() {
         
         {/* Video overlay with AI speaking indicator only */}
         {isAISpeaking && (
-          <div className="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2">
+          <div className="absolute top-4 left-4 bg-blue-600/90 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2 z-10">
             <Volume2 className="h-4 w-4 animate-pulse" />
             <span className="text-sm font-medium">AI is speaking...</span>
           </div>
@@ -797,7 +834,7 @@ export default function LiveInterview() {
         
         {/* Processing indicator */}
         {isProcessing && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-20">
             <div className="bg-blue-600/90 backdrop-blur-sm rounded-lg px-6 py-4 flex items-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
               <span className="text-lg font-medium">Processing your answer...</span>
@@ -808,7 +845,7 @@ export default function LiveInterview() {
       
       {/* Transcript overlay - only show when recording and has content */}
       {isRecording && transcript && transcript.trim().length > 0 && (
-        <div className="absolute bottom-20 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-4">
+        <div className="absolute bottom-20 left-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg p-4 z-10">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="h-4 w-4 text-blue-400" />
             <span className="text-sm font-medium text-blue-400">Your Response:</span>
