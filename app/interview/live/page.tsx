@@ -273,6 +273,8 @@ export default function LiveInterview() {
       if (videoRef.current) {
         console.log('Setting up video element...')
         videoRef.current.srcObject = stream
+        
+        // Set video element properties
         videoRef.current.style.display = 'block'
         videoRef.current.style.width = '100%'
         videoRef.current.style.height = '100%'
@@ -282,6 +284,23 @@ export default function LiveInterview() {
         videoRef.current.style.left = '0'
         videoRef.current.style.zIndex = '10'
         videoRef.current.style.backgroundColor = '#000'
+        
+        // Add event listeners for debugging
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight)
+        }
+        
+        videoRef.current.oncanplay = () => {
+          console.log('Video can play')
+        }
+        
+        videoRef.current.onplay = () => {
+          console.log('Video started playing')
+        }
+        
+        videoRef.current.onerror = (e) => {
+          console.error('Video error:', e)
+        }
         
         // Ensure video plays
         try {
@@ -293,6 +312,18 @@ export default function LiveInterview() {
             if (videoRef.current) {
               videoRef.current.style.display = 'block'
               console.log('Video element forced to display')
+              
+              // Additional check to ensure video is visible
+              if (videoRef.current.videoWidth === 0) {
+                console.warn('Video width is 0, trying to restart')
+                videoRef.current.srcObject = null
+                setTimeout(() => {
+                  if (videoRef.current && streamRef.current) {
+                    videoRef.current.srcObject = streamRef.current
+                    videoRef.current.play()
+                  }
+                }, 100)
+              }
             }
           }, 100)
         } catch (playError) {

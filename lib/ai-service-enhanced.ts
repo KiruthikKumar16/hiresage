@@ -7,44 +7,30 @@ export class EnhancedAIService {
   private model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
 
   // Generate contextual interview questions
-  async generateInterviewQuestion(
-    context: string,
-    previousQuestions: string[],
-    candidateProfile?: any,
-    position?: string
-  ): Promise<{
-    question: string
-    category: string
-    difficulty: 'easy' | 'medium' | 'hard'
-    timeLimit: number
-    followUpQuestions?: string[]
-  }> {
-    const prompt = `You are an AI interviewer conducting a professional interview. Generate a relevant interview question based on the following context:
-
-    Context: ${context}
-    Position: ${position || 'General'}
-    Previous Questions: ${previousQuestions.join(', ')}
-    Candidate Profile: ${JSON.stringify(candidateProfile || {})}
-
-    Generate a question that:
-    1. Is relevant to the position and context
-    2. Builds upon previous questions
-    3. Helps assess the candidate's skills and experience
-    4. Is appropriate for the interview stage
-
-    Respond ONLY with a JSON object in this exact format:
-    {
-      "question": "string",
-      "category": "technical|behavioral|situational|general",
-      "difficulty": "easy|medium|hard",
-      "timeLimit": number,
-      "followUpQuestions": ["string"]
-    }`
-
+  async generateInterviewQuestion(context: string, previousQuestions: string[], candidateInfo: any, position: string): Promise<any> {
+    let responseText = ''
     try {
+      const prompt = `Generate an interview question for a candidate. 
+
+Context: ${context}
+Position: ${position}
+Candidate Info: ${JSON.stringify(candidateInfo)}
+Previous Questions: ${previousQuestions.join(', ')}
+
+Please return a JSON response with the following structure:
+{
+  "question": "the interview question",
+  "category": "behavioral, technical, situational, or general",
+  "difficulty": "easy, medium, or hard",
+  "timeLimit": 120,
+  "followUpQuestions": ["follow up question 1", "follow up question 2"]
+}
+
+Make the question relevant to the position and candidate's background.`
+
       const result = await this.model.generateContent(prompt)
       const response = await result.response
-      const responseText = response.text()
+      responseText = response.text()
       
       // Clean the response to extract JSON
       let jsonText = responseText.trim()
@@ -402,6 +388,7 @@ export class EnhancedAIService {
   }
 
   async analyzeEmotion(text: string): Promise<any> {
+    let responseText = ''
     try {
       const prompt = `Analyze the emotional content of the following text and return a JSON response with emotion analysis:
 
@@ -427,7 +414,7 @@ Focus on detecting emotions that would be relevant in an interview context.`
 
       const result = await this.model.generateContent(prompt)
       const response = await result.response
-      const responseText = response.text()
+      responseText = response.text()
       
       // Clean the response to extract JSON
       let jsonText = responseText.trim()
