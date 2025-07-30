@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { authService } from '@/lib/auth'
+import { ArrowRight } from 'lucide-react'
 
 interface AuthFormProps {
   onSuccess?: () => void
@@ -64,64 +65,76 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">
+    <Card className="w-full max-w-md mx-auto bg-white border-2 border-gray-100 shadow-xl">
+      <CardHeader className="space-y-1 pb-6">
+        <CardTitle className="text-3xl font-bold text-center text-black">
           {isSignUp ? 'Create Account' : 'Sign In'}
         </CardTitle>
-        <CardDescription className="text-center">
+        <CardDescription className="text-center text-gray-600">
           {isSignUp 
             ? 'Create your account to start taking AI interviews'
             : 'Sign in to your account to continue'
           }
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <Tabs defaultValue="email" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="oauth">OAuth</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+            <TabsTrigger value="email" className="data-[state=active]:bg-white data-[state=active]:text-black">
+              Email
+            </TabsTrigger>
+            <TabsTrigger value="oauth" className="data-[state=active]:bg-white data-[state=active]:text-black">
+              OAuth
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="email" className="space-y-4">
+          <TabsContent value="email" className="space-y-6 mt-6">
             <form onSubmit={handleEmailAuth} className="space-y-4">
               {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name" className="text-gray-700 font-medium">Name</Label>
                   <Input
                     id="name"
                     name="name"
                     type="text"
                     placeholder="Enter your name"
+                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                     required={isSignUp}
                   />
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   placeholder="Enter your email"
+                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
                   placeholder="Enter your password"
+                  className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   required
                 />
               </div>
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+                <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </form>
             
@@ -129,19 +142,19 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-orange-600 hover:text-orange-700 font-medium"
               >
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </button>
             </div>
           </TabsContent>
           
-          <TabsContent value="oauth" className="space-y-4">
+          <TabsContent value="oauth" className="space-y-6 mt-6">
             <div className="space-y-4">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
                 onClick={() => handleOAuth('google')}
                 disabled={isLoading}
               >
@@ -157,7 +170,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
                 onClick={() => handleOAuth('github')}
                 disabled={isLoading}
               >
