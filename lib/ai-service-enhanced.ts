@@ -400,6 +400,68 @@ export class EnhancedAIService {
       ]
     }
   }
+
+  async analyzeEmotion(text: string): Promise<any> {
+    try {
+      const prompt = `Analyze the emotional content of the following text and return a JSON response with emotion analysis:
+
+Text: "${text}"
+
+Please analyze and return a JSON object with the following structure:
+{
+  "primary_emotion": "the most dominant emotion (happy, sad, angry, anxious, confident, neutral, etc.)",
+  "confidence": "confidence score between 0 and 1",
+  "emotions": {
+    "happy": 0.0-1.0,
+    "sad": 0.0-1.0,
+    "angry": 0.0-1.0,
+    "anxious": 0.0-1.0,
+    "confident": 0.0-1.0,
+    "neutral": 0.0-1.0
+  },
+  "sentiment": "positive, negative, or neutral",
+  "intensity": "low, medium, or high"
+}
+
+Focus on detecting emotions that would be relevant in an interview context.`
+
+      const result = await this.model.generateContent(prompt)
+      const response = await result.response
+      const responseText = response.text()
+      
+      // Clean the response to extract JSON
+      let jsonText = responseText.trim()
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Try to parse the JSON
+      const parsed = JSON.parse(jsonText)
+      
+      // Validate the response structure
+      if (!parsed.primary_emotion) {
+        throw new Error('Invalid response structure: missing primary_emotion')
+      }
+      
+      return parsed
+    } catch (error) {
+      console.error('Error analyzing emotion:', error)
+      console.log('AI Response was:', responseText)
+      
+      // Return a fallback emotion analysis
+      return {
+        primary_emotion: 'neutral',
+        confidence: 0.5,
+        emotions: { neutral: 0.5 },
+        sentiment: 'neutral',
+        intensity: 'low'
+      }
+    }
+  }
 }
 
 // Export singleton instance

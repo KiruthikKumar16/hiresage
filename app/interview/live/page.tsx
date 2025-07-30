@@ -287,6 +287,14 @@ export default function LiveInterview() {
         try {
           await videoRef.current.play()
           console.log('Video started playing successfully')
+          
+          // Force a re-render to ensure video is visible
+          setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.style.display = 'block'
+              console.log('Video element forced to display')
+            }
+          }, 100)
         } catch (playError) {
           console.error('Error playing video:', playError)
           // Try again after a short delay
@@ -299,6 +307,8 @@ export default function LiveInterview() {
             }
           }, 1000)
         }
+      } else {
+        console.error('Video ref is null')
       }
 
       // Initialize speech recognition with better error handling
@@ -444,6 +454,8 @@ export default function LiveInterview() {
 
     setIsProcessing(true)
     try {
+      console.log('Submitting answer:', transcript.trim())
+      
       // Submit answer to API
       const response = await fetch('/api/interview/answer', {
         method: 'POST',
@@ -453,76 +465,24 @@ export default function LiveInterview() {
         body: JSON.stringify({
           interviewId: session.interviewId,
           sessionId: session.sessionToken, // Use sessionToken as sessionId
-          content: transcript.trim(),
-          emotionData: {}
+          content: transcript.trim()
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to submit answer')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit answer')
       }
 
       const data = await response.json()
+      console.log('Answer submitted successfully:', data)
       
-      // Analyze the response using AI
-      const analysisResponse = await fetch('/api/interview/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          interviewId: session.interviewId,
-          answer: transcript.trim(),
-          question: currentQuestion
-        })
-      })
-
-      if (analysisResponse.ok) {
-        const analysisData = await analysisResponse.json()
-        setAnalysis(analysisData.data)
-      }
-
-      // Check if we should continue to next question
-      // Make it dynamic based on AI analysis and response quality
-      const shouldContinue = analysis && (
-        analysis.confidenceScore > 0.3 && 
-        analysis.relevance > 0.4 && 
-        transcript.trim().length > 20
-      )
-
-      if (shouldContinue) {
-        // Get next question
-        const nextQuestionResponse = await fetch('/api/interview/next-question', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            interviewId: session.interviewId,
-            sessionToken: session.sessionToken,
-            previousAnswer: transcript.trim(),
-            analysis: analysis
-          })
-        })
-
-        if (nextQuestionResponse.ok) {
-          const nextQuestionData = await nextQuestionResponse.json()
-          setQuestionIndex(prev => prev + 1)
-          setCurrentQuestion(nextQuestionData.data.question)
-          setTranscript('')
-          setAnalysis(null)
-          
-          // Speak the next question
-          setTimeout(() => {
-            speakQuestion(nextQuestionData.data.question)
-          }, 2000)
-        } else {
-          throw new Error('Failed to get next question')
-        }
-      } else {
-        // Interview complete - AI has enough information
-        await completeInterview()
-      }
+      // Clear transcript for next question
+      setTranscript('')
+      
+      // Get next question or complete interview
+      // For now, just complete the interview after one answer
+      await completeInterview()
 
     } catch (error) {
       console.error('Error submitting answer:', error)
