@@ -1,195 +1,207 @@
--- Enable UUID extension
+-- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users table
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  company VARCHAR(255),
-  phone VARCHAR(50),
-  website VARCHAR(255),
-  role VARCHAR(50) DEFAULT 'candidate' CHECK (role IN ('system_admin', 'university_admin', 'enterprise_admin', 'candidate')),
-  max_users INTEGER DEFAULT 1,
-  plan VARCHAR(50),
-  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
-  organization_id UUID,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  avatar TEXT DEFAULT '',
+  provider TEXT DEFAULT '',
+  role TEXT NOT NULL DEFAULT 'candidate' CHECK (role IN ('candidate', 'enterprise_admin', 'system_admin')),
+  organization_id UUID REFERENCES organizations(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add organization_id column if it doesn't exist
-DO $$ 
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'organization_id') THEN
-        ALTER TABLE users ADD COLUMN organization_id UUID;
-    END IF;
-END $$;
-
--- Questions table
-CREATE TABLE IF NOT EXISTS questions (
+-- Organizations table
+CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  question TEXT NOT NULL,
-  category VARCHAR(50) NOT NULL CHECK (category IN ('technical', 'behavioral', 'situational', 'problem_solving', 'leadership')),
-  difficulty VARCHAR(20) NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard', 'expert')),
-  tags TEXT[] DEFAULT '{}',
-  weight INTEGER DEFAULT 5 CHECK (weight >= 1 AND weight <= 10),
-  expected_answer TEXT,
-  is_active BOOLEAN DEFAULT true,
-  created_by UUID REFERENCES users(id),
-  updated_by UUID REFERENCES users(id),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('university', 'company')),
+  admin_id UUID REFERENCES users(id),
+  subscription_status TEXT NOT NULL DEFAULT 'trial' CHECK (subscription_status IN ('trial', 'active', 'expired')),
+  interview_limit INTEGER DEFAULT 10,
+  interviews_used INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Subscriptions table
-CREATE TABLE IF NOT EXISTS subscriptions (
+CREATE TABLE subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan_id VARCHAR(50) NOT NULL,
-  plan_name VARCHAR(100) NOT NULL,
-  interviews_remaining INTEGER NOT NULL DEFAULT 0,
-  total_interviews INTEGER NOT NULL DEFAULT 0,
-  price_per_interview DECIMAL(10,2) NOT NULL DEFAULT 0,
-  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled')),
-  payment_method VARCHAR(50),
-  payment_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'completed', 'failed')),
-  trial_end_date TIMESTAMP WITH TIME ZONE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id),
+  plan_type TEXT NOT NULL CHECK (plan_type IN ('trial', 'monthly', 'per_interview')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'expired', 'cancelled')),
+  interview_limit INTEGER DEFAULT 10,
+  interviews_used INTEGER DEFAULT 0,
   expires_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Interviews table
-CREATE TABLE IF NOT EXISTS interviews (
+CREATE TABLE interviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  candidate_name VARCHAR(255) NOT NULL,
-  position VARCHAR(255) NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
-  score INTEGER,
-  duration INTEGER,
-  transcript TEXT,
-  ai_feedback TEXT,
-  emotion_data JSONB,
-  cheating_detection JSONB,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  organization_id UUID REFERENCES organizations(id),
+  candidate_name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
+  duration INTEGER DEFAULT 0,
+  transcript TEXT DEFAULT '',
+  ai_feedback TEXT DEFAULT '',
+  cheating_flags JSONB DEFAULT '[]',
+  emotion_data JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Interview sessions table
+CREATE TABLE interview_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  interview_id UUID REFERENCES interviews(id) ON DELETE CASCADE,
+  session_token TEXT UNIQUE NOT NULL,
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Messages table
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  interview_id UUID NOT NULL REFERENCES interviews(id) ON DELETE CASCADE,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
+  interview_id UUID REFERENCES interviews(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES interview_sessions(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('ai', 'user')),
   content TEXT NOT NULL,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_users_organization_id ON users(organization_id);
-CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category);
-CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
-CREATE INDEX IF NOT EXISTS idx_questions_is_active ON questions(is_active);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
-CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
-CREATE INDEX IF NOT EXISTS idx_interviews_user_id ON interviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_interviews_status ON interviews(status);
-CREATE INDEX IF NOT EXISTS idx_messages_interview_id ON messages(interview_id);
+-- Audit logs table
+CREATE TABLE audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  details JSONB DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Row Level Security (RLS) Policies
+-- Create indexes for better performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_organization_id ON users(organization_id);
+CREATE INDEX idx_interviews_user_id ON interviews(user_id);
+CREATE INDEX idx_interviews_organization_id ON interviews(organization_id);
+CREATE INDEX idx_interviews_status ON interviews(status);
+CREATE INDEX idx_messages_interview_id ON messages(interview_id);
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+
+-- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interview_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist (to avoid conflicts)
-DROP POLICY IF EXISTS "Users can view their own data" ON users;
-DROP POLICY IF EXISTS "Users can update their own data" ON users;
-DROP POLICY IF EXISTS "Users can insert their own data" ON users;
-DROP POLICY IF EXISTS "System admins can view all users" ON users;
-DROP POLICY IF EXISTS "Organization admins can view their organization users" ON users;
-DROP POLICY IF EXISTS "System admins can manage all questions" ON questions;
-DROP POLICY IF EXISTS "All authenticated users can view active questions" ON questions;
-DROP POLICY IF EXISTS "Users can view their own subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Users can insert their own subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "System admins can view all subscriptions" ON subscriptions;
-DROP POLICY IF EXISTS "Users can view their own interviews" ON interviews;
-DROP POLICY IF EXISTS "Users can create their own interviews" ON interviews;
-DROP POLICY IF EXISTS "Users can update their own interviews" ON interviews;
-DROP POLICY IF EXISTS "System admins can view all interviews" ON interviews;
-DROP POLICY IF EXISTS "Users can view messages for their interviews" ON messages;
-DROP POLICY IF EXISTS "Users can create messages for their interviews" ON messages;
-
--- Users policies - Simplified to avoid recursion
-CREATE POLICY "Users can view their own data" ON users
+-- RLS Policies for users
+CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Users can update their own data" ON users
+CREATE POLICY "Users can update own profile" ON users
   FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "Users can insert their own data" ON users
-  FOR INSERT WITH CHECK (auth.uid() = id);
-
--- Allow system admins to view all users (simplified)
 CREATE POLICY "System admins can view all users" ON users
-  FOR SELECT USING (true);
-
--- Allow organization admins to view users in their organization (simplified)
-CREATE POLICY "Organization admins can view their organization users" ON users
-  FOR SELECT USING (true);
-
--- Questions policies
-CREATE POLICY "System admins can manage all questions" ON questions
-  FOR ALL USING (true);
-
-CREATE POLICY "All authenticated users can view active questions" ON questions
-  FOR SELECT USING (
-    is_active = true AND auth.uid() IS NOT NULL
-  );
-
--- Subscriptions policies
-CREATE POLICY "Users can view their own subscriptions" ON subscriptions
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own subscriptions" ON subscriptions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "System admins can view all subscriptions" ON subscriptions
-  FOR SELECT USING (true);
-
--- Interviews policies
-CREATE POLICY "Users can view their own interviews" ON interviews
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create their own interviews" ON interviews
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own interviews" ON interviews
-  FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "System admins can view all interviews" ON interviews
-  FOR SELECT USING (true);
-
--- Messages policies
-CREATE POLICY "Users can view messages for their interviews" ON messages
-  FOR SELECT USING (
+  FOR ALL USING (
     EXISTS (
-      SELECT 1 FROM interviews 
-      WHERE interviews.id = messages.interview_id 
-      AND interviews.user_id = auth.uid()
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
     )
   );
 
-CREATE POLICY "Users can create messages for their interviews" ON messages
+CREATE POLICY "Enterprise admins can view organization users" ON users
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users u1 
+      WHERE u1.id = auth.uid() 
+      AND u1.role = 'enterprise_admin' 
+      AND u1.organization_id = users.organization_id
+    )
+  );
+
+-- RLS Policies for organizations
+CREATE POLICY "Enterprise admins can manage own organization" ON organizations
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND role = 'enterprise_admin' 
+      AND organization_id = organizations.id
+    )
+  );
+
+CREATE POLICY "System admins can manage all organizations" ON organizations
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
+    )
+  );
+
+-- RLS Policies for interviews
+CREATE POLICY "Users can view own interviews" ON interviews
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own interviews" ON interviews
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own interviews" ON interviews
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Enterprise admins can view organization interviews" ON interviews
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users u1 
+      WHERE u1.id = auth.uid() 
+      AND u1.role = 'enterprise_admin' 
+      AND u1.organization_id = interviews.organization_id
+    )
+  );
+
+CREATE POLICY "System admins can view all interviews" ON interviews
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
+    )
+  );
+
+-- RLS Policies for messages
+CREATE POLICY "Users can view own interview messages" ON messages
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM interviews 
+      WHERE id = messages.interview_id 
+      AND user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can create messages for own interviews" ON messages
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM interviews 
-      WHERE interviews.id = messages.interview_id 
-      AND interviews.user_id = auth.uid()
+      WHERE id = messages.interview_id 
+      AND user_id = auth.uid()
+    )
+  );
+
+-- RLS Policies for audit logs
+CREATE POLICY "Users can view own audit logs" ON audit_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "System admins can view all audit logs" ON audit_logs
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users WHERE id = auth.uid() AND role = 'system_admin'
     )
   );
 
@@ -197,20 +209,29 @@ CREATE POLICY "Users can create messages for their interviews" ON messages
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
+  NEW.updated_at = NOW();
+  RETURN NEW;
 END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_questions_updated_at BEFORE UPDATE ON questions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_interviews_updated_at BEFORE UPDATE ON interviews
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+-- Function to log audit events
+CREATE OR REPLACE FUNCTION log_audit_event(
+  p_user_id UUID,
+  p_action TEXT,
+  p_details JSONB DEFAULT '{}',
+  p_ip_address TEXT DEFAULT NULL,
+  p_user_agent TEXT DEFAULT NULL
+)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO audit_logs (user_id, action, details, ip_address, user_agent)
+  VALUES (p_user_id, p_action, p_details, p_ip_address, p_user_agent);
+END;
+$$ LANGUAGE plpgsql; 

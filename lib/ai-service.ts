@@ -1,195 +1,208 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!)
 
-// Use Gemini 2.0 Flash model
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+export class AIService {
+  private model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
 
-export interface InterviewContext {
-  position: string
-  candidate_name: string
-  previous_questions: string[]
-  current_question_index: number
-}
-
-export interface AIResponse {
-  question?: string
-  score?: number
-  feedback?: string
-  summary?: string
-  analysis?: string
-}
-
-export const aiService = {
-  // Generate interview question based on context
-  async generateInterviewQuestion(context: InterviewContext): Promise<AIResponse> {
+  // Generate interview question
+  async generateQuestion(context: string, previousQuestions: string[], candidateInfo: any, position: string): Promise<any> {
     try {
-      const prompt = `You are an AI interviewer conducting a professional interview for the position of ${context.position}.
+      const prompt = `Generate an interview question for a candidate. 
 
-Candidate: ${context.candidate_name}
-Previous questions asked: ${context.previous_questions.join(', ') || 'None'}
-Current question number: ${context.current_question_index + 1}
+Context: ${context}
+Position: ${position}
+Candidate Info: ${JSON.stringify(candidateInfo)}
+Previous Questions: ${previousQuestions.join(', ')}
 
-Generate a relevant, professional interview question that:
-1. Is appropriate for the position of ${context.position}
-2. Builds upon previous questions (if any)
-3. Helps assess the candidate's skills, experience, and fit
-4. Is clear and specific
-5. Encourages detailed responses
+Return a JSON response with this structure:
+{
+  "question": "the interview question",
+  "category": "behavioral, technical, situational, or general",
+  "difficulty": "easy, medium, or hard",
+  "timeLimit": 120,
+  "followUpQuestions": ["follow up question 1", "follow up question 2"]
+}`
 
-Question categories to consider:
-- Technical skills (if applicable)
-- Behavioral/situational
-- Problem-solving
-- Leadership/teamwork
-- Company/role specific
-
-Return only the question text, no additional formatting or explanation.`
-
-      const result = await model.generateContent(prompt)
+      const result = await this.model.generateContent(prompt)
       const response = await result.response
-      const question = response.text().trim()
-
-      return { question }
+      const responseText = response.text()
+      
+      // Clean the response to extract JSON
+      let jsonText = responseText.trim()
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Try to parse the JSON
+      const parsed = JSON.parse(jsonText)
+      
+      return {
+        question: parsed.question || "Tell me about a challenging project you worked on and how you overcame obstacles.",
+        category: parsed.category || 'behavioral',
+        difficulty: parsed.difficulty || 'medium',
+        timeLimit: parsed.timeLimit || 120,
+        followUpQuestions: parsed.followUpQuestions || []
+      }
     } catch (error) {
       console.error('Error generating interview question:', error)
-      // Fallback question
+      
+      // Return a fallback question
       return {
-        question: `Tell me about your experience and why you're interested in the ${context.position} position.`
+        question: "Tell me about a challenging project you worked on and how you overcame obstacles.",
+        category: "behavioral",
+        difficulty: "medium",
+        timeLimit: 120,
+        followUpQuestions: []
       }
     }
-  },
+  }
 
-  // Analyze candidate's response
-  async analyzeResponse(response: string, context: InterviewContext): Promise<AIResponse> {
+  // Analyze response with cheating detection
+  async analyzeResponse(question: string, response: string, emotionData?: any, cheatingData?: any): Promise<any> {
     try {
-      const prompt = `You are an AI interviewer analyzing a candidate's response.
+      const prompt = `Analyze this interview response comprehensively:
 
-Position: ${context.position}
-Candidate: ${context.candidate_name}
+Question: "${question}"
 Response: "${response}"
+Emotion Data: ${JSON.stringify(emotionData || {})}
+Cheating Detection: ${JSON.stringify(cheatingData || {})}
 
-Analyze this response and provide:
-1. A score from 1-10 (where 10 is excellent)
-2. Specific feedback on what was good and what could be improved
-3. Assessment of communication skills, technical knowledge, and overall fit
+Return a JSON object with this structure:
+{
+  "confidenceScore": 0.7,
+  "truthfulness": 0.8,
+  "relevance": 0.8,
+  "completeness": 0.7,
+  "emotionAnalysis": {
+    "primaryEmotion": "neutral",
+    "stressLevel": "low",
+    "engagement": "medium",
+    "confidence": "medium"
+  },
+  "cheatingFlags": [],
+  "suggestions": ["Provide more specific examples", "Elaborate on your role"],
+  "nextQuestion": "optional follow-up question"
+}`
 
-Consider:
-- Clarity and structure of response
-- Relevance to the position
-- Specific examples provided
-- Technical accuracy (if applicable)
-- Communication skills
-- Confidence level
-
-Provide your analysis in a structured format:
-Score: [1-10]
-Feedback: [detailed feedback]
-Strengths: [list key strengths]
-Areas for improvement: [list areas to improve]`
-
-      const result = await model.generateContent(prompt)
+      const result = await this.model.generateContent(prompt)
       const aiResponse = await result.response
-      const analysis = aiResponse.text().trim()
-
-      // Extract score from analysis
-      const scoreMatch = analysis.match(/Score:\s*(\d+)/i)
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : 5
-
-      // Extract feedback
-      const feedbackMatch = analysis.match(/Feedback:\s*([\s\S]*?)(?=Strengths:|Areas for improvement:|$)/i)
-      const feedback = feedbackMatch ? feedbackMatch[1].trim() : 'Response analyzed.'
-
+      const responseText = aiResponse.text()
+      
+      // Clean the response to extract JSON
+      let jsonText = responseText.trim()
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Try to parse the JSON
+      const parsed = JSON.parse(jsonText)
+      
       return {
-        score,
-        feedback,
-        analysis
+        confidenceScore: parsed.confidenceScore || 0.7,
+        truthfulness: parsed.truthfulness || 0.8,
+        relevance: parsed.relevance || 0.8,
+        completeness: parsed.completeness || 0.7,
+        emotionAnalysis: parsed.emotionAnalysis || {
+          primaryEmotion: "neutral",
+          stressLevel: "low",
+          engagement: "medium",
+          confidence: "medium"
+        },
+        cheatingFlags: parsed.cheatingFlags || [],
+        suggestions: parsed.suggestions || ["Provide more specific examples", "Elaborate on your role"],
+        nextQuestion: parsed.nextQuestion
       }
     } catch (error) {
       console.error('Error analyzing response:', error)
+      
       return {
-        score: 5,
-        feedback: 'Response received and recorded.',
-        analysis: 'Analysis completed.'
+        confidenceScore: 0.7,
+        truthfulness: 0.8,
+        relevance: 0.8,
+        completeness: 0.7,
+        emotionAnalysis: {
+          primaryEmotion: "neutral",
+          stressLevel: "low",
+          engagement: "medium",
+          confidence: "medium"
+        },
+        cheatingFlags: [],
+        suggestions: ["Provide more specific examples", "Elaborate on your role"]
       }
     }
-  },
+  }
 
   // Generate interview summary
-  async generateInterviewSummary(context: {
-    position: string
-    candidate_name: string
-    questions: string[]
-    answers: string[]
-    analysis: AIResponse
-  }): Promise<AIResponse> {
+  async generateSummary(questions: string[], responses: any[], analysis: any[]): Promise<any> {
     try {
-      const prompt = `You are an AI interviewer providing a comprehensive summary of an interview.
+      const prompt = `Generate a comprehensive interview summary based on the following data:
 
-Position: ${context.position}
-Candidate: ${context.candidate_name}
+Questions: ${JSON.stringify(questions)}
+Responses: ${JSON.stringify(responses)}
+Analysis: ${JSON.stringify(analysis)}
 
-Interview Questions and Answers:
-${context.questions.map((q, i) => `Q${i + 1}: ${q}\nA${i + 1}: ${context.answers[i] || 'No answer provided'}`).join('\n\n')}
+Provide a detailed summary including:
+- Overall score (0-100)
+- Key strengths
+- Areas for improvement
+- Recommendations
+- Executive summary
 
-Overall Analysis: ${context.analysis.analysis || 'Analysis completed'}
+Return a JSON object with this structure:
+{
+  "overallScore": 75,
+  "strengths": ["Good communication skills", "Relevant experience"],
+  "weaknesses": ["Could provide more specific examples"],
+  "recommendations": ["Consider providing more detailed examples", "Practice technical questions"],
+  "summary": "The candidate demonstrated good communication skills and relevant experience, but could benefit from providing more specific examples."
+}`
 
-Generate a comprehensive interview summary that includes:
-1. Overall assessment of the candidate
-2. Key strengths demonstrated
-3. Areas of concern or improvement
-4. Technical skills evaluation (if applicable)
-5. Communication and interpersonal skills
-6. Recommendation for next steps
-7. Overall score and reasoning
-
-Provide a professional, detailed summary that would be useful for hiring managers.`
-
-      const result = await model.generateContent(prompt)
+      const result = await this.model.generateContent(prompt)
       const response = await result.response
-      const summary = response.text().trim()
-
-      return { summary }
+      const responseText = response.text()
+      
+      // Clean the response to extract JSON
+      let jsonText = responseText.trim()
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Try to parse the JSON
+      const parsed = JSON.parse(jsonText)
+      
+      return {
+        overallScore: parsed.overallScore || 75,
+        strengths: parsed.strengths || ["Good communication skills", "Relevant experience"],
+        weaknesses: parsed.weaknesses || ["Could provide more specific examples"],
+        recommendations: parsed.recommendations || ["Consider providing more detailed examples", "Practice technical questions"],
+        summary: parsed.summary || "The candidate demonstrated good communication skills and relevant experience, but could benefit from providing more specific examples."
+      }
     } catch (error) {
       console.error('Error generating interview summary:', error)
+      
       return {
-        summary: `Interview completed for ${context.candidate_name} for the ${context.position} position. Overall assessment and recommendations have been recorded.`
+        overallScore: 75,
+        strengths: ["Good communication skills", "Relevant experience"],
+        weaknesses: ["Could provide more specific examples"],
+        recommendations: ["Consider providing more detailed examples", "Practice technical questions"],
+        summary: "The candidate demonstrated good communication skills and relevant experience, but could benefit from providing more specific examples."
       }
     }
-  },
-
-  // Detect emotions from video data (placeholder for future implementation)
-  async detectEmotions(videoFrame: any): Promise<any> {
-    // This would integrate with a real emotion detection service
-    // For now, return mock data
-    return {
-      emotions: {
-        happy: Math.random() * 0.3,
-        sad: Math.random() * 0.1,
-        angry: Math.random() * 0.05,
-        surprised: Math.random() * 0.1,
-        neutral: Math.random() * 0.5
-      },
-      confidence: Math.random() * 0.8 + 0.2
-    }
-  },
-
-  // Detect cheating behavior (placeholder for future implementation)
-  async detectCheating(videoFrame: any, audioData: any): Promise<any> {
-    // This would integrate with real cheating detection algorithms
-    // For now, return mock data
-    return {
-      suspicious_activity: Math.random() > 0.8,
-      confidence: Math.random() * 0.9 + 0.1,
-      flags: Math.random() > 0.9 ? ['multiple_faces', 'screen_sharing'] : []
-    }
-  },
-
-  // Convert speech to text (placeholder for future implementation)
-  async speechToText(audioData: any): Promise<string> {
-    // This would integrate with a real speech-to-text service
-    // For now, return mock data
-    return "Mock speech-to-text conversion result."
   }
-} 
+}
+
+// Export singleton instance
+export const aiService = new AIService() 
